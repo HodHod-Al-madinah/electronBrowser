@@ -121,9 +121,9 @@ function openInvoiceWindow(url) {
   // Close the window after 1 second (1000 milliseconds)
   setTimeout(() => {
     invoiceWindow.close();
-  }, 1000);
+  }, 2000);
 }
-   
+
 // Function to open a general new window
 function openNewWindow(url) {
   const newWindow = new BrowserWindow({

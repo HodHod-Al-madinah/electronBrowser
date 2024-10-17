@@ -31,10 +31,10 @@ function createWindow() {
   mainWindow.webContents.setWindowOpenHandler(({ url }) => {
     if (url.includes('invoice')) {
       console.log("URL contains invoice");
-      openInvoiceWindow(url);
+      openInvoiceWindow(url);  // Open the invoice window in the background
       return { action: 'deny' };
     } else {
-      openNewWindow(url);
+      openNewWindow(url);  // Open the general window in the background
       return { action: 'deny' };
     }
   });
@@ -62,6 +62,7 @@ function openInvoiceWindow(url) {
   const invoiceWindow = new BrowserWindow({
     width: 800,
     height: 600,
+    show: false,  // Hide the window, run in the background
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true,
@@ -71,7 +72,7 @@ function openInvoiceWindow(url) {
 
   invoiceWindow.loadURL(url);
 
-  // Set a custom menu with icons only
+  // Set a custom menu with icons only (Optional)
   const menu = Menu.buildFromTemplate([
     {
       label: '📄 PDF',
@@ -103,8 +104,8 @@ function openInvoiceWindow(url) {
       },
       landscape: false,
       pageSize: {
-        width: 80 * 1000,
-        height: 297000,
+        width: 80 * 1000,  // 80mm width for EZP003
+        height: 297000,    // A4 height or customize as needed
       },
       scaleFactor: scaleFactor,  // Apply user-defined scale factor
     }, (success, errorType) => {
@@ -114,14 +115,10 @@ function openInvoiceWindow(url) {
         console.log('Print success!');
       }
 
+      // Close the hidden invoice window after printing
       invoiceWindow.close();
     });
   });
-
-  // Close the window after 1 second (1000 milliseconds)
-  setTimeout(() => {
-    invoiceWindow.close();
-  }, 2000);
 }
 
 // Function to open a general new window
@@ -129,6 +126,7 @@ function openNewWindow(url) {
   const newWindow = new BrowserWindow({
     width: 800,
     height: 600,
+    show: false, // Hide the window and perform actions in the background
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true,
@@ -136,6 +134,12 @@ function openNewWindow(url) {
     frame: true
   });
   newWindow.loadURL(url);
+
+  // You can perform other background tasks in the new window if needed
+  newWindow.webContents.on('did-finish-load', () => {
+    console.log('New window content loaded in the background.');
+    newWindow.close();  // Close after loading, or you can perform additional actions
+  });
 }
 
 app.whenReady().then(createWindow);

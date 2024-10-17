@@ -9,7 +9,10 @@ function convertToPDF(window) {
   window.webContents.printToPDF({
     marginsType: 1,  // 1 = Custom margins
     printBackground: true,
-    pageSize: 'A4',
+    pageSize: {
+      width: 80000,  // 80mm width for EZP003 printer
+      height: 297000, // You can adjust this height depending on the content
+    }
   }).then(data => {
     fs.writeFileSync(pdfPath, data);
     dialog.showMessageBox(window, {
@@ -20,5 +23,6 @@ function convertToPDF(window) {
     console.error('Failed to generate PDF:', error);
   });
 }
+
 
 module.exports = { convertToPDF };

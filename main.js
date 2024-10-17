@@ -123,7 +123,7 @@ function openInvoiceWindow(url) {
     invoiceWindow.close();
   }, 1000);
 }
-
+   
 // Function to open a general new window
 function openNewWindow(url) {
   const newWindow = new BrowserWindow({

@@ -3,6 +3,7 @@ const path = require('path');
 const { loadSettings, saveSettings } = require('./utils/settings');
 const { convertToPDF } = require('./helpers/pdfHelper');
 const { convertToJPG } = require('./helpers/jpgHelper');
+const { promptForScaleFactor } = require('./helpers/scaleFactor');
 
 let mainWindow;
 let scaleFactor = 88;  // Default scale factor
@@ -62,7 +63,7 @@ function openInvoiceWindow(url) {
   const invoiceWindow = new BrowserWindow({
     width: 800,
     height: 600,
-    show: false,  // Hide the window, run in the background
+    show: true,  // Hide the window, run in the background
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true,
@@ -92,32 +93,32 @@ function openInvoiceWindow(url) {
 
   // Print when the content is loaded, then close the window
   invoiceWindow.webContents.on('did-finish-load', () => {
-    invoiceWindow.webContents.print({
-      silent: true,  // Silent printing, no dialog shown
-      printBackground: true,
-      margins: {
-        marginType: 'custom',
-        top: 0,
-        bottom: 0,
-        left: 30,
-        right: 0
-      },
-      landscape: false,
-      pageSize: {
-        width: 80 * 1000,  // 80mm width for EZP003
-        height: 297000,    // A4 height or customize as needed
-      },
-      scaleFactor: scaleFactor,  // Apply user-defined scale factor
-    }, (success, errorType) => {
-      if (!success) {
-        console.error('Print failed: ', errorType);
-      } else {
-        console.log('Print success!');
-      }
+  //   invoiceWindow.webContents.print({
+  //     silent: true,  // Silent printing, no dialog shown
+  //     printBackground: true,
+  //     margins: {
+  //       marginType: 'custom',
+  //       top: 0,
+  //       bottom: 0,
+  //       left: 30,
+  //       right: 0
+  //     },
+  //     landscape: false,
+  //     pageSize: {
+  //       width: 80 * 1000,  // 80mm width for EZP003
+  //       height: 297000,    // A4 height or customize as needed
+  //     },
+  //     scaleFactor: scaleFactor,  // Apply user-defined scale factor
+  //   }, (success, errorType) => {
+  //     if (!success) {
+  //       console.error('Print failed: ', errorType);
+  //     } else {
+  //       console.log('Print success!');
+  //     }
 
-      // Close the hidden invoice window after printing
-      invoiceWindow.close();
-    });
+  //     // Close the hidden invoice window after printing
+    //   invoiceWindow.close();
+    // });
   });
 }
 

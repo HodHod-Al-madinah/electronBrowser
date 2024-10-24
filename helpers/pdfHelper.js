@@ -6,17 +6,17 @@ const { dialog } = require('electron');
 function convertToPDF(window) {
 
   const timestamp = Date.now(); 
-    const pdfPath = path.join(__dirname, `../attachment/${timestamp}.jpg`);
-  
+    const pdfPath = path.join(__dirname, `../attachment/${timestamp}.pdf`);
+    
   window.webContents.printToPDF({
-    marginsType: 1,  // 1 = Custom margins
+    marginsType: 50,  // 1 = Custom margins
     printBackground: true,
     pageSize: 'A4',
   }).then(data => {
     fs.writeFileSync(pdfPath, data);
     dialog.showMessageBox(window, {
       message: 'PDF created successfully!',
-      detail: 'PDF saved to: ${pdfPath}'
+      // detail: `PDF saved to: ${pdfPath}`
     });
   }).catch(error => {
     console.error('Failed to generate PDF:', error);

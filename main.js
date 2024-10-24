@@ -1,9 +1,11 @@
 const { app, BrowserWindow, Menu } = require('electron');
 const path = require('path');
-const { loadSettings, saveSettings } = require('./utils/settings');
 const { convertToPDF } = require('./helpers/pdfHelper');
-const { convertToJPG } = require('./helpers/jpgHelper');
+const { convertToJPG, convertToJPGAndOpenWhatsApp } = require('./helpers/jpgHelper');  // Import both functions
 const { promptForScaleFactor } = require('./helpers/scaleFactor');
+const { loadSettings, saveSettings } = require('./utils/settings');
+
+
 
 let mainWindow;
 let scaleFactor = 88;  // Default scale factor
@@ -27,7 +29,7 @@ function createWindow() {
     frame: true  // Window frame visible
   });
 
-  mainWindow.loadURL('http://192.168.8.52:8000/');
+  mainWindow.loadURL('http://127.0.0.1:8000');
 
   mainWindow.webContents.setWindowOpenHandler(({ url }) => {
     if (url.includes('invoice')) {
@@ -35,10 +37,18 @@ function createWindow() {
       openInvoiceWindow(url);  // Open the invoice window in the background
       return { action: 'deny' };
     } else {
-      openNewWindow(url);  // Open the general window in the background
+      openNewWindow(url); 
       return { action: 'deny' };
     }
   });
+
+  // Catch any error related to loading the URL
+  mainWindow.webContents.on('did-fail-load', (event, errorCode, errorDescription, validatedURL) => {
+    // Show an alert dialog with error details
+    dialog.showErrorBox('Failed to Load URL', `Error: ${errorDescription}\nURL: ${validatedURL}`);
+    console.log(`Error Code: ${errorCode}, Error Description: ${errorDescription}`);
+  });
+
 
   mainWindow.webContents.on('did-finish-load', () => {
     mainWindow.webContents.executeJavaScript(`
@@ -52,9 +62,11 @@ function createWindow() {
     `);
   });
 
+
+
   // Save the current scaleFactor before closing
   mainWindow.on('close', () => {
-    saveSettings(scaleFactor); // Save the current scaleFactor to settings.json
+    saveSettings(scaleFactor);
   });
 }
 
@@ -86,37 +98,41 @@ function openInvoiceWindow(url) {
     {
       label: '📏 Scale',
       click: () => promptForScaleFactor(invoiceWindow)
+    },
+    {
+      label: '💬 WhatsApp',
+      click: () => convertToJPGAndOpenWhatsApp(invoiceWindow)  // Ensure the correct function is called here
     }
   ]);
-  
+
   invoiceWindow.setMenu(menu);
 
   // Print when the content is loaded, then close the window
   invoiceWindow.webContents.on('did-finish-load', () => {
-  //   invoiceWindow.webContents.print({
-  //     silent: true,  // Silent printing, no dialog shown
-  //     printBackground: true,
-  //     margins: {
-  //       marginType: 'custom',
-  //       top: 0,
-  //       bottom: 0,
-  //       left: 30,
-  //       right: 0
-  //     },
-  //     landscape: false,
-  //     pageSize: {
-  //       width: 80 * 1000,  // 80mm width for EZP003
-  //       height: 297000,    // A4 height or customize as needed
-  //     },
-  //     scaleFactor: scaleFactor,  // Apply user-defined scale factor
-  //   }, (success, errorType) => {
-  //     if (!success) {
-  //       console.error('Print failed: ', errorType);
-  //     } else {
-  //       console.log('Print success!');
-  //     }
+    //   invoiceWindow.webContents.print({
+    //     silent: true,  // Silent printing, no dialog shown
+    //     printBackground: true,
+    //     margins: {
+    //       marginType: 'custom',
+    //       top: 0,
+    //       bottom: 0,
+    //       left: 30,
+    //       right: 0
+    //     },
+    //     landscape: false,
+    //     pageSize: {
+    //       width: 80 * 1000,  // 80mm width for EZP003
+    //       height: 297000,    // A4 height or customize as needed
+    //     },
+    //     scaleFactor: scaleFactor,  // Apply user-defined scale factor
+    //   }, (success, errorType) => {
+    //     if (!success) {
+    //       console.error('Print failed: ', errorType);
+    //     } else {
+    //       console.log('Print success!');
+    //     }
 
-  //     // Close the hidden invoice window after printing
+    //     // Close the hidden invoice window after printing
     //   invoiceWindow.close();
     // });
   });

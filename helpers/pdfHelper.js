@@ -16,7 +16,7 @@ function convertToPDF(window) {
     fs.writeFileSync(pdfPath, data);
     dialog.showMessageBox(window, {
       message: 'PDF created successfully!',
-      detail: `PDF saved to: ${pdfPath}`
+      detail: 'PDF saved to: ${pdfPath}'
     });
   }).catch(error => {
     console.error('Failed to generate PDF:', error);

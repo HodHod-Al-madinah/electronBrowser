@@ -1,19 +1,42 @@
-const { app, BrowserWindow, Menu } = require('electron');
+const { app, BrowserWindow, Menu, dialog } = require('electron');
 const path = require('path');
 const { convertToPDF } = require('./helpers/pdfHelper');
 const { convertToJPG, convertToJPGAndOpenWhatsApp } = require('./helpers/jpgHelper');  // Import both functions
 const { promptForScaleFactor } = require('./helpers/scaleFactor');
 const { loadSettings, saveSettings } = require('./utils/settings');
-
-
+const fs = require('fs');
 
 let mainWindow;
 let scaleFactor = 88;  // Default scale factor
+let whatsappNumber = '';  // Store WhatsApp number
+
+// Path to settings file for saving the WhatsApp number
+const settingsFilePath = path.join(__dirname, 'settings.json');
+
+// Load WhatsApp number from settings file
+function loadWhatsAppNumber() {
+  try {
+    const data = fs.readFileSync(settingsFilePath);
+    const settings = JSON.parse(data);
+    whatsappNumber = settings.whatsapp_number || '';
+    console.log('Loaded WhatsApp Number:', whatsappNumber);
+  } catch (error) {
+    console.log('No WhatsApp number found, using default.');
+  }
+}
+
+// Save WhatsApp number to settings file
+function saveWhatsAppNumber(number) {
+  const settings = { whatsapp_number: number };
+  fs.writeFileSync(settingsFilePath, JSON.stringify(settings, null, 2));
+  console.log('WhatsApp number saved:', number);
+}
 
 // Create the main window
 function createWindow() {
   // Load the last used scaleFactor from settings
   scaleFactor = loadSettings(); // Load settings when the app starts
+  loadWhatsAppNumber(); // Load WhatsApp number
 
   mainWindow = new BrowserWindow({
     fullscreen: true,
@@ -44,11 +67,9 @@ function createWindow() {
 
   // Catch any error related to loading the URL
   mainWindow.webContents.on('did-fail-load', (event, errorCode, errorDescription, validatedURL) => {
-    // Show an alert dialog with error details
     dialog.showErrorBox('Failed to Load URL', `Error: ${errorDescription}\nURL: ${validatedURL}`);
     console.log(`Error Code: ${errorCode}, Error Description: ${errorDescription}`);
   });
-
 
   mainWindow.webContents.on('did-finish-load', () => {
     mainWindow.webContents.executeJavaScript(`
@@ -57,12 +78,47 @@ function createWindow() {
           window.close(); 
         } else if (event.key === 'F5') {
           location.reload();
+        } else if (event.key === 'F11') {
+          const isFullScreen = window.isFullScreen();
+          window.setFullScreen(!isFullScreen);
         }
       });
     `);
   });
 
+  // Set a custom menu in the main window with an option to save WhatsApp number
+  const menu = Menu.buildFromTemplate([
+    {
+      label: 'File',
+      submenu: [
+        {
+          label: 'Save WhatsApp Number',
+          click: () => {
+            // Open a dialog to enter WhatsApp number
+            const number = dialog.showInputBox({
+              message: 'Enter WhatsApp Number (with country code):',
+              value: whatsappNumber || '+966'
+            });
 
+            if (number) {
+              saveWhatsAppNumber(number);
+              whatsappNumber = number;  // Update the variable
+              dialog.showMessageBox(mainWindow, {
+                message: `WhatsApp Number Saved: ${number}`,
+                buttons: ['OK']
+              });
+            }
+          }
+        },
+        {
+          label: 'Quit',
+          role: 'quit'
+        }
+      ]
+    }
+  ]);
+
+  Menu.setApplicationMenu(menu);
 
   // Save the current scaleFactor before closing
   mainWindow.on('close', () => {
@@ -75,7 +131,7 @@ function openInvoiceWindow(url) {
   const invoiceWindow = new BrowserWindow({
     width: 800,
     height: 600,
-    show: true,  // Hide the window, run in the background
+    show: true,
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true,
@@ -101,7 +157,7 @@ function openInvoiceWindow(url) {
     },
     {
       label: '💬 WhatsApp',
-      click: () => convertToJPGAndOpenWhatsApp(invoiceWindow)  // Ensure the correct function is called here
+      click: () => convertToJPGAndOpenWhatsApp(invoiceWindow, whatsappNumber)  // Ensure the correct function is called here
     }
   ]);
 

@@ -1,7 +1,7 @@
 const { app, BrowserWindow, Menu, dialog } = require('electron');
 const path = require('path');
 const { convertToPDF } = require('./helpers/pdfHelper');
-const { convertToJPG, convertToJPGAndOpenWhatsApp } = require('./helpers/jpgHelper');  // Import both functions
+const { convertToJPG, convertToJPGAndOpenWhatsApp } = require('./helpers/jpgHelper');
 const { promptForScaleFactor } = require('./helpers/scaleFactor');
 const { loadSettings, saveSettings } = require('./utils/settings');
 const fs = require('fs');
@@ -30,6 +30,37 @@ function saveWhatsAppNumber(number) {
   const settings = { whatsapp_number: number };
   fs.writeFileSync(settingsFilePath, JSON.stringify(settings, null, 2));
   console.log('WhatsApp number saved:', number);
+}
+
+// Function to prompt user to enter WhatsApp number
+function openWhatsAppNumberDialog() {
+  const inputWindow = new BrowserWindow({
+    width: 300,
+    height: 150,
+    modal: true,
+    show: true,
+    webPreferences: {
+      nodeIntegration: true,
+      contextIsolation: false,
+    }
+  });
+
+  inputWindow.loadURL(`data:text/html,
+    <html>
+      <body>
+        <h3>Enter WhatsApp Number</h3>
+        <input id="whatsappNumber" type="text" value="${whatsappNumber || '+966'}" style="width: 100%;"/>
+        <button id="saveBtn" style="width: 100%;">Save</button>
+        <script>
+          const { ipcRenderer } = require('electron');
+          document.getElementById('saveBtn').addEventListener('click', () => {
+            const number = document.getElementById('whatsappNumber').value;
+            ipcRenderer.send('save-whatsapp-number', number);
+          });
+        </script>
+      </body>
+    </html>
+  `);
 }
 
 // Create the main window
@@ -93,22 +124,7 @@ function createWindow() {
       submenu: [
         {
           label: 'Save WhatsApp Number',
-          click: () => {
-            // Open a dialog to enter WhatsApp number
-            const number = dialog.showInputBox({
-              message: 'Enter WhatsApp Number (with country code):',
-              value: whatsappNumber || '+966'
-            });
-
-            if (number) {
-              saveWhatsAppNumber(number);
-              whatsappNumber = number;  // Update the variable
-              dialog.showMessageBox(mainWindow, {
-                message: `WhatsApp Number Saved: ${number}`,
-                buttons: ['OK']
-              });
-            }
-          }
+          click: () => openWhatsAppNumberDialog() // Open input dialog for WhatsApp number
         },
         {
           label: 'Quit',
@@ -162,36 +178,6 @@ function openInvoiceWindow(url) {
   ]);
 
   invoiceWindow.setMenu(menu);
-
-  // Print when the content is loaded, then close the window
-  invoiceWindow.webContents.on('did-finish-load', () => {
-    //   invoiceWindow.webContents.print({
-    //     silent: true,  // Silent printing, no dialog shown
-    //     printBackground: true,
-    //     margins: {
-    //       marginType: 'custom',
-    //       top: 0,
-    //       bottom: 0,
-    //       left: 30,
-    //       right: 0
-    //     },
-    //     landscape: false,
-    //     pageSize: {
-    //       width: 80 * 1000,  // 80mm width for EZP003
-    //       height: 297000,    // A4 height or customize as needed
-    //     },
-    //     scaleFactor: scaleFactor,  // Apply user-defined scale factor
-    //   }, (success, errorType) => {
-    //     if (!success) {
-    //       console.error('Print failed: ', errorType);
-    //     } else {
-    //       console.log('Print success!');
-    //     }
-
-    //     // Close the hidden invoice window after printing
-    //   invoiceWindow.close();
-    // });
-  });
 }
 
 // Function to open a general new window
@@ -216,6 +202,14 @@ function openNewWindow(url) {
 }
 
 app.whenReady().then(createWindow);
+
+// Handle the WhatsApp number saving in the main process
+const { ipcMain } = require('electron');
+ipcMain.on('save-whatsapp-number', (event, number) => {
+  saveWhatsAppNumber(number);
+  whatsappNumber = number;
+  event.sender.getOwnerBrowserWindow().close();  // Close the input window
+});
 
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') {

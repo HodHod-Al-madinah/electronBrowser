@@ -4,8 +4,9 @@ const { dialog } = require('electron');
 
 // Function to convert the current page to JPG
 function convertToJPG(window) {
-  const jpgPath = path.join(__dirname, '../../output.jpg');  // Path to save the JPG file
-
+  const timestamp = Date.now(); 
+    const jpgPath = path.join(__dirname, `../attachment/${timestamp}.jpg`);
+    
   window.webContents.capturePage().then(image => {
     fs.writeFileSync(jpgPath, image.toJPEG(100));  // Save image as JPEG
 

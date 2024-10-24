@@ -4,7 +4,9 @@ const { dialog } = require('electron');
 
 // Function to convert the current page to PDF
 function convertToPDF(window) {
-  const pdfPath = path.join(__dirname, '../../output.pdf');  // Path to save the PDF file
+
+  const timestamp = Date.now(); 
+    const pdfPath = path.join(__dirname, `../attachment/${timestamp}.jpg`);
   
   window.webContents.printToPDF({
     marginsType: 1,  // 1 = Custom margins

@@ -91,48 +91,33 @@ function createWindow() {
       openInvoiceWindow(url);  // Open the invoice window in the background
       return { action: 'deny' };
     } else {
-      openNewWindow(url); 
+      openNewWindow(url);
       return { action: 'deny' };
     }
   });
 
   // Catch any error related to loading the URL
-  mainWindow.webContents.on('did-fail-load', (event, errorCode, errorDescription, validatedURL) => {
-    dialog.showErrorBox('Failed to Load URL', `Error: ${errorDescription}\nURL: ${validatedURL}`);
-    console.log(`Error Code: ${errorCode}, Error Description: ${errorDescription}`);
-  });
-
   mainWindow.webContents.on('did-finish-load', () => {
     mainWindow.webContents.executeJavaScript(`
-      document.addEventListener('keydown', function(event) {
-        if (event.key === 'F12') {
-          window.close(); 
-        } else if (event.key === 'F5') {
-          location.reload();
-        } else if (event.key === 'F11') {
-          const isFullScreen = window.isFullScreen();
-          window.setFullScreen(!isFullScreen);
-        }
-      });
+        document.addEventListener('keydown', (event) => {
+            if (event.key === 'F12') {
+                window.close();
+            } else if (event.key === 'F5') {
+                location.reload();
+            } else if (event.key === 'F9') {
+                require('electron').ipcRenderer.send('toggle-fullscreen');
+            }
+        });
     `);
   });
 
-  // Set a custom menu in the main window with an option to save WhatsApp number
-  const menu = Menu.buildFromTemplate([
-    {
-      label: 'File',
-      submenu: [
-        {
-          label: 'Save WhatsApp Number',
-          click: () => openWhatsAppNumberDialog() // Open input dialog for WhatsApp number
-        },
-        {
-          label: 'Quit',
-          role: 'quit'
-        }
-      ]
-    }
-  ]);
+  const { ipcMain } = require('electron');
+  ipcMain.on('toggle-fullscreen', () => {
+    const isFullScreen = mainWindow.isFullScreen();
+    mainWindow.setFullScreen(!isFullScreen);
+  });
+
+
 
   Menu.setApplicationMenu(menu);
 
@@ -142,9 +127,10 @@ function createWindow() {
   });
 }
 
-// Function to open a new window for the invoice
+// invoice window
 function openInvoiceWindow(url) {
   const invoiceWindow = new BrowserWindow({
+    fullscreen: true,
     width: 800,
     height: 600,
     show: true,
@@ -157,25 +143,66 @@ function openInvoiceWindow(url) {
 
   invoiceWindow.loadURL(url);
 
-  // Set a custom menu with icons only (Optional)
+  // Set a custom menu with icons only
   const menu = Menu.buildFromTemplate([
     {
       label: '📄 PDF',
       click: () => convertToPDF(invoiceWindow)
     },
+
     {
       label: '🖼️ JPG',
       click: () => convertToJPG(invoiceWindow)
     },
+
+
+    {
+      type: 'separator'
+    },
+
+    {
+      label: ' ', enabled: false
+    },  // Blank line without action
+
+    {
+      label: ' ', enabled: false
+
+    },  // Another blank line
+
+    {
+      type: 'separator'
+    },
+
+    {
+      label: ' ', enabled: false
+    },
+
+    {
+      label: '  ', enabled: false
+    },
+
     {
       label: '📏 Scale',
       click: () => promptForScaleFactor(invoiceWindow)
     },
+
     {
       label: '💬 WhatsApp',
       click: () => convertToJPGAndOpenWhatsApp(invoiceWindow, whatsappNumber)  // Ensure the correct function is called here
+    },
+
+    {
+      label: 'Save WhatsApp Number',
+      click: () => openWhatsAppNumberDialog()
+    },
+
+    // Right-aligned Close section workaround
+    {
+      label: '❌ Close',
+      click: () => invoiceWindow.close()
     }
   ]);
+
 
   invoiceWindow.setMenu(menu);
 }
@@ -185,7 +212,7 @@ function openNewWindow(url) {
   const newWindow = new BrowserWindow({
     width: 800,
     height: 600,
-    show: false, // Hide the window and perform actions in the background
+    show: false,
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true,

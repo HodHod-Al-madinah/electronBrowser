@@ -2,9 +2,9 @@ const fs = require('fs');
 const path = require('path');
 const { dialog, shell } = require('electron');
 
-// Function to convert the current page to JPG and open WhatsApp
+
 function convertToJPGAndOpenWhatsApp(window, whatsappNumber) {
-  const timestamp = Date.now(); 
+  const timestamp = Date.now();
   const jpgPath = path.join(__dirname, `../attachment/invoice_${timestamp}.jpg`);
 
   window.webContents.capturePage().then(image => {
@@ -26,16 +26,18 @@ function convertToJPGAndOpenWhatsApp(window, whatsappNumber) {
       buttons: ['OK'],
       defaultId: 0
     }).then(() => {
-      // Open WhatsApp with the saved phone number and a message
-      const message = encodeURIComponent('Please find the attached invoice.');
-      shell.openExternal(`https://wa.me/${whatsappNumber}?text=${message}`);
-    });
+      // Create a message including the JPG file location
+      const message = encodeURIComponent(`Please find the attached invoice at this location on your system:\n${jpgPath}`);
+      // shell.openExternal(`https://wa.me/${whatsappNumber}?text=${message}`);
+      shell.openExternal(`https://web.whatsapp.com/send?phone=${whatsappNumber}&text=${message}`);    });
 
     console.log(`Invoice saved as JPG: ${jpgPath}`);
   }).catch(error => {
     console.error('Failed to generate JPG:', error);
   });
 }
+
+
 
 // Function to convert the current page to JPG only
 function convertToJPG(window) {
@@ -56,5 +58,6 @@ function convertToJPG(window) {
     console.error('Failed to generate JPG:', error);
   });
 }
+
 
 module.exports = { convertToJPG, convertToJPGAndOpenWhatsApp };

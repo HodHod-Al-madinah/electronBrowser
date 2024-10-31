@@ -1,10 +1,11 @@
-const { app, BrowserWindow, ipcMain, BrowserView } = require('electron');
+const { app, BrowserWindow, BrowserView, ipcMain, globalShortcut } = require('electron');
 const { exec } = require('child_process');
 const path = require('path');
 
-const batchFilePath = 'D:\\test\\go.bat'; // Path to your batch file
 let mainWindow;
 let mainView, outputView;
+let activeView; 
+const batchFilePath = 'D:\\test\\go.bat'; 
 
 function createMainWindow() {
   mainWindow = new BrowserWindow({
@@ -17,39 +18,60 @@ function createMainWindow() {
     },
   });
 
-  // Create the main view (home tab) with the action button
+  registerShortcuts();
+
   mainView = new BrowserView({
     webPreferences: {
       nodeIntegration: true,
       contextIsolation: false,
     },
   });
-  mainWindow.setBrowserView(mainView);
-  mainView.setBounds({ x: 0, y: 30, width: 1024, height: 738 }); // Adjust height based on your screen size
+  mainWindow.addBrowserView(mainView);
+  mainView.setBounds({ x: 0, y: 50, width: 1024, height: 718 });
+  
   mainView.webContents.loadURL(`data:text/html,
     <html>
       <body>
-        <h3>Custom Actions</h3>
-        <button id="openBatchBtn" style="width: 100%; padding: 10px; margin: 5px;">Run Batch File and Open in New Tab</button>
+        <button id="runBatchBtn" style="width: 40%; padding: 10px;">Open Program</button>
         <script>
           const { ipcRenderer } = require('electron');
-          document.getElementById('openBatchBtn').addEventListener('click', () => ipcRenderer.send('run-batch-file'));
+          document.getElementById('runBatchBtn').addEventListener('click', () => ipcRenderer.send('run-batch-file'));
         </script>
       </body>
     </html>
   `);
 
-  // Listen for IPC events to create new tabs
+  activeView = mainView;
+
   ipcMain.on('run-batch-file', () => runBatchFileAndDisplayOutput());
 }
 
-// Function to switch views (simulates tab switching)
-function switchToView(view) {
-  mainWindow.setBrowserView(view);
-  view.setBounds({ x: 0, y: 30, width: 1024, height: 738 });
+function registerShortcuts() {
+
+  globalShortcut.register('F12', () => {
+    if (activeView) {
+      activeView.webContents.openDevTools();
+    }
+  });
+
+  globalShortcut.register('F11', () => {
+    mainWindow.setFullScreen(!mainWindow.isFullScreen());
+  });
+
+  globalShortcut.register('F5', () => {
+    if (activeView) {
+      activeView.webContents.reload();
+    }
+  });
 }
 
-// Function to run the batch file and display output in a new tab (BrowserView)
+function switchToView(view) {
+  mainWindow.removeBrowserView(activeView);
+  activeView = view;
+  mainWindow.addBrowserView(activeView);
+  activeView.setBounds({ x: 0, y: 50, width: 1024, height: 718 });
+}
+
 function runBatchFileAndDisplayOutput() {
   exec(`"${batchFilePath}"`, (error, stdout, stderr) => {
     let output = '';
@@ -61,16 +83,18 @@ function runBatchFileAndDisplayOutput() {
       output = stdout;
     }
 
-    // Create the output view (new tab) and display batch output
-    outputView = new BrowserView({
-      webPreferences: {
-        nodeIntegration: true,
-        contextIsolation: false,
-      },
-    });
-
+    if (!outputView) {
+      outputView = new BrowserView({
+        webPreferences: {
+          nodeIntegration: true,
+          contextIsolation: false,
+        },
+      });
+    }
+    
     mainWindow.addBrowserView(outputView);
-    outputView.setBounds({ x: 0, y: 30, width: 1024, height: 738 });
+    outputView.setBounds({ x: 0, y: 50, width: 1024, height: 718 });
+
     outputView.webContents.loadURL(`data:text/html,
       <html>
         <body>
@@ -80,14 +104,15 @@ function runBatchFileAndDisplayOutput() {
       </html>
     `);
 
-    // Switch to the output tab after loading
+  
     switchToView(outputView);
   });
 }
 
-// Open the custom tab when the app is ready
-app.whenReady().then(() => {
-  createMainWindow();
+app.whenReady().then(createMainWindow);
+
+app.on('will-quit', () => {
+  globalShortcut.unregisterAll();
 });
 
 app.on('window-all-closed', () => {

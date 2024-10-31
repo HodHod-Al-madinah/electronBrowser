@@ -22,7 +22,7 @@ async function promptForScaleFactor(mainWindow, scaleFactor) {
     case 1:
       scaleFactor = 90;
       break;
-    case 2:
+    case 2:   
       scaleFactor = 88;
       break;
     case 3:

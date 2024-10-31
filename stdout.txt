@@ -1,0 +1,11 @@
+Oracle version 5.21
+Copyright 2002-2010 Oracle Team, published under GNU GPL.
+---
+CONFIG:Loading primary settings from config file d:\test\AUDITOR1920-1080ALL.conf
+MIDI:Opened device:win32
+Serial1: Opening com3
+Serial1: Serial Port "com3" could not be opened.
+The specified port does not exist.
+The system cannot find the file specified.
+
+DOS keyboard layout loaded with main language code US for layout us103

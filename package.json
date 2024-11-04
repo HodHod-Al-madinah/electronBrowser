@@ -1,5 +1,5 @@
 {
-  "name": "electron-browser",
+  "name": "mobi-cacher",
   "version": "1.0.0",
   "main": "main.js",
   "scripts": {
@@ -21,7 +21,7 @@
   },
   "build": {
     "appId": "com.hodhod.browser",
-    "productName": "Hodhod Browser",
+    "productName": "mobi-cacher",
     "files": [
       "**/*"
     ],

@@ -53,6 +53,7 @@ function createWindow() {
         webPreferences: {
           nodeIntegration: false,
           contextIsolation: true,
+          webSecurity: true,
         }
       });
 
@@ -66,7 +67,7 @@ function createWindow() {
 
       // Print the invoice and close the window
       invoiceWindow.webContents.on('did-finish-load', () => {
-        printInvoiceWindow(invoiceWindow, scaleFactor);
+          printInvoiceWindow(invoiceWindow, scaleFactor);
       });
 
       return { action: 'deny' };

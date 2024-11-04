@@ -1,120 +1,108 @@
-const { app, BrowserWindow, BrowserView, ipcMain, globalShortcut } = require('electron');
-const { exec } = require('child_process');
+const { app, BrowserWindow, shell, Menu } = require('electron');
 const path = require('path');
+const { convertToPDF } = require('./helpers/pdfHelper');
+const { convertToJPG } = require('./helpers/jpgHelper');
+const { promptForScaleFactor } = require('./helpers/scaleHelper');
+const { printInvoiceWindow } = require('./helpers/printHelper');
+const { buildInvoiceMenu } = require('./helpers/menuHelper'); // Import the menu helper
 
 let mainWindow;
-let mainView, outputView;
-let activeView; 
-const batchFilePath = 'D:\\test\\go.bat'; 
+let settingsFile = path.join(__dirname, 'settings.json');
+let scaleFactor = 88;  // Default scale factor
 
-function createMainWindow() {
+// Function to load settings from the settings.json file
+function loadSettings() {
+  const fs = require('fs');
+  try {
+    const data = fs.readFileSync(settingsFile);
+    const settings = JSON.parse(data);
+    if (settings.scaleFactor) {
+      scaleFactor = settings.scaleFactor;
+    }
+  } catch (error) {
+    console.log('No settings file found, using defaults.');
+  }
+}
+
+// Function to create the main window and load the main URL
+function createWindow() {
+  loadSettings(); // Load settings when the app starts
+
   mainWindow = new BrowserWindow({
-    width: 1024,
-    height: 768,
     fullscreen: true,
+    width: 1280,
+    height: 800,
+    icon: path.join(__dirname, 'image', 'logo3.ico'),
     webPreferences: {
-      nodeIntegration: true,
-      contextIsolation: false,
+      nodeIntegration: false,
+      contextIsolation: true,
+      webSecurity: true,
+      preload: path.join(__dirname, 'preload.js')
     },
+    frame: true  // Window frame visible
   });
 
-  registerShortcuts();
+  // Load your main page
+  mainWindow.loadURL('http://192.168.8.52:8000/');
 
-  mainView = new BrowserView({
-    webPreferences: {
-      nodeIntegration: true,
-      contextIsolation: false,
-    },
-  });
-  mainWindow.addBrowserView(mainView);
-  mainView.setBounds({ x: 0, y: 50, width: 1024, height: 718 });
-  
-  mainView.webContents.loadURL(`data:text/html,
-    <html>
-      <body>
-        <button id="runBatchBtn" style="width: 40%; padding: 10px;">Open Program</button>
-        <script>
-          const { ipcRenderer } = require('electron');
-          document.getElementById('runBatchBtn').addEventListener('click', () => ipcRenderer.send('run-batch-file'));
-        </script>
-      </body>
-    </html>
-  `);
-
-  activeView = mainView;
-
-  ipcMain.on('run-batch-file', () => runBatchFileAndDisplayOutput());
-}
-
-function registerShortcuts() {
-
-  globalShortcut.register('F12', () => {
-    if (activeView) {
-      activeView.webContents.openDevTools();
-    }
-  });
-
-  globalShortcut.register('F11', () => {
-    mainWindow.setFullScreen(!mainWindow.isFullScreen());
-  });
-
-  globalShortcut.register('F5', () => {
-    if (activeView) {
-      activeView.webContents.reload();
-    }
-  });
-}
-
-function switchToView(view) {
-  mainWindow.removeBrowserView(activeView);
-  activeView = view;
-  mainWindow.addBrowserView(activeView);
-  activeView.setBounds({ x: 0, y: 50, width: 1024, height: 718 });
-}
-
-function runBatchFileAndDisplayOutput() {
-  exec(`"${batchFilePath}"`, (error, stdout, stderr) => {
-    let output = '';
-    if (error) {
-      output = `Error executing batch file: ${error.message}`;
-    } else if (stderr) {
-      output = `Batch file stderr: ${stderr}`;
-    } else {
-      output = stdout;
-    }
-
-    if (!outputView) {
-      outputView = new BrowserView({
+  // Handle new tab opening for the invoice page
+  mainWindow.webContents.setWindowOpenHandler(async ({ url }) => {
+    if (url.includes('http://192.168.8.52:8000/invoice')) {
+      const invoiceWindow = new BrowserWindow({
+        fullscreen: true,
         webPreferences: {
-          nodeIntegration: true,
-          contextIsolation: false,
-        },
+          nodeIntegration: false,
+          contextIsolation: true,
+        }
       });
+
+      // Load the invoice URL
+      invoiceWindow.loadURL(url);
+
+      // Use the helper function to build the menu
+      const invoiceMenuTemplate = buildInvoiceMenu(convertToPDF, convertToJPG, promptForScaleFactor, invoiceWindow);
+      const invoiceMenu = Menu.buildFromTemplate(invoiceMenuTemplate);
+      invoiceWindow.setMenu(invoiceMenu);
+
+      // Print the invoice and close the window
+      invoiceWindow.webContents.on('did-finish-load', () => {
+        printInvoiceWindow(invoiceWindow, scaleFactor);
+      });
+
+      return { action: 'deny' };
+    } else {
+      shell.openExternal(url);
+      return { action: 'deny' };
     }
-    
-    mainWindow.addBrowserView(outputView);
-    outputView.setBounds({ x: 0, y: 50, width: 1024, height: 718 });
+  });
 
-    outputView.webContents.loadURL(`data:text/html,
-      <html>
-        <body>
-          <h3>Batch File Output</h3>
-          <pre style="white-space: pre-wrap; word-wrap: break-word;">${output}</pre>
-        </body>
-      </html>
+
+  mainWindow.webContents.on('did-finish-load', () => {
+    mainWindow.webContents.executeJavaScript(`
+      document.addEventListener('keydown', function(event) {
+        if (event.key === 'F12') {
+          window.close(); 
+        } else if (event.key === 'F5') {
+          location.reload();
+        } else if (event.key === 'F11') {
+          require('electron').ipcRenderer.send('toggle-fullscreen');
+        }
+      });
     `);
+  });
 
-  
-    switchToView(outputView);
+
+  const { ipcMain } = require('electron');
+  ipcMain.on('toggle-fullscreen', () => {
+    const isFullScreen = mainWindow.isFullScreen();
+    mainWindow.setFullScreen(!isFullScreen);
   });
 }
 
-app.whenReady().then(createMainWindow);
 
-app.on('will-quit', () => {
-  globalShortcut.unregisterAll();
-});
+app.whenReady().then(createWindow);
 
+// Quit the app when all windows are closed, except on macOS
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') {
     app.quit();
@@ -123,6 +111,6 @@ app.on('window-all-closed', () => {
 
 app.on('activate', () => {
   if (BrowserWindow.getAllWindows().length === 0) {
-    createMainWindow();
+    createWindow();
   }
 });

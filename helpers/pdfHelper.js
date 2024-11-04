@@ -1,23 +1,23 @@
+const { dialog, BrowserWindow } = require('electron');
 const fs = require('fs');
 const path = require('path');
-const { dialog } = require('electron');
 
 // Function to convert the current page to PDF
-function convertToPDF(window) {
-
-  const timestamp = Date.now(); 
-    const pdfPath = path.join(__dirname, `../attachment/${timestamp}.pdf`);
-    
-  window.webContents.printToPDF({
-    marginsType: 50,  // 1 = Custom margins
+function convertToPDF(mainWindow) {
+  const pdfPath = path.join(__dirname, '../output.pdf');  // Path to save the PDF file
+  
+  mainWindow.webContents.printToPDF({
+    marginsType: 1,  // 1 = Custom margins
     printBackground: true,
     pageSize: 'A4',
   }).then(data => {
     fs.writeFileSync(pdfPath, data);
-    dialog.showMessageBox(window, {
+
+    dialog.showMessageBox(mainWindow, {
       message: 'PDF created successfully!',
-      // detail: `PDF saved to: ${pdfPath}`
+      detail: `PDF saved to: ${pdfPath}`
     });
+    
   }).catch(error => {
     console.error('Failed to generate PDF:', error);
   });

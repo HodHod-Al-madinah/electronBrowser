@@ -3,8 +3,8 @@ const path = require('path');
 const { convertToPDF } = require('./helpers/pdfHelper');
 const { convertToJPG } = require('./helpers/jpgHelper');
 const { promptForScaleFactor } = require('./helpers/scaleHelper');
-// const { printInvoiceWindow } = require('./helpers/printHelper');
-const { buildInvoiceMenu } = require('./helpers/menuHelper'); // Import the menu helper
+const { printInvoiceWindow } = require('./helpers/printHelper');
+const { buildInvoiceMenu } = require('./helpers/menuHelper');
 
 let mainWindow;
 let settingsFile = path.join(__dirname, 'settings.json');

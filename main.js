@@ -43,11 +43,11 @@ function createWindow() {
   });
 
   // Load your main page
-  mainWindow.loadURL('http://192.168.8.52:8000/');
+  mainWindow.loadURL('https://mobi-cashier.com/');
 
   // Handle new tab opening for the invoice page
   mainWindow.webContents.setWindowOpenHandler(async ({ url }) => {
-    if (url.includes('http://192.168.8.52:8000/invoice')) {
+    if (url.includes('https://mobi-cashier.com/invoice')) {
       const invoiceWindow = new BrowserWindow({
         fullscreen: true,
         webPreferences: {

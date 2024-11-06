@@ -8,9 +8,9 @@ const { buildInvoiceMenu } = require('./helpers/menuHelper');
 
 let mainWindow;
 let settingsFile = path.join(__dirname, 'settings.json');
-let scaleFactor = 88;  // Default scale factor
+let scaleFactor = 88;  
 
-// Function to load settings from the settings.json file
+
 function loadSettings() {
   const fs = require('fs');
   try {
@@ -24,9 +24,9 @@ function loadSettings() {
   }
 }
 
-// Function to create the main window and load the main URL
+
 function createWindow() {
-  loadSettings(); // Load settings when the app starts
+  loadSettings();
 
   mainWindow = new BrowserWindow({
     fullscreen: true,
@@ -42,10 +42,10 @@ function createWindow() {
     frame: true  // Window frame visible
   });
 
-  // Load your main page
+
   mainWindow.loadURL('https://mobi-cashier.com/');
 
-  // Handle new tab opening for the invoice page
+
   mainWindow.webContents.setWindowOpenHandler(async ({ url }) => {
     if (url.includes('https://mobi-cashier.com/invoice')) {
       const invoiceWindow = new BrowserWindow({
@@ -57,15 +57,15 @@ function createWindow() {
         }
       });
 
-      // Load the invoice URL
+
       invoiceWindow.loadURL(url);
 
-      // Use the helper function to build the menu
+
       const invoiceMenuTemplate = buildInvoiceMenu(convertToPDF, convertToJPG, promptForScaleFactor, invoiceWindow);
       const invoiceMenu = Menu.buildFromTemplate(invoiceMenuTemplate);
       invoiceWindow.setMenu(invoiceMenu);
 
-      // Print the invoice and close the window
+
       invoiceWindow.webContents.on('did-finish-load', () => {
           printInvoiceWindow(invoiceWindow, scaleFactor);
       });
@@ -103,7 +103,7 @@ function createWindow() {
 
 app.whenReady().then(createWindow);
 
-// Quit the app when all windows are closed, except on macOS
+
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') {
     app.quit();

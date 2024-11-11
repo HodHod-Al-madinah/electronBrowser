@@ -44,7 +44,7 @@ async function getBiosData() {
 }
 
 
-function createWindow() {
+async  function createWindow() {
   loadSettings();
 
   mainWindow = new BrowserWindow({

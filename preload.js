@@ -9,5 +9,8 @@ contextBridge.exposeInMainWorld('electron', {
 contextBridge.exposeInMainWorld('electron', {
   setScaleFactor: (scaleFactor) => ipcRenderer.send('set-scale-factor', scaleFactor)
 });
+contextBridge.exposeInMainWorld('api', {
+  onBiosData: (callback) => ipcRenderer.on('bios-data', (event, data) => callback(data)),
+});
 contextBridge.exposeInMainWorld('$', $);
 contextBridge.exposeInMainWorld('jQuery', $);

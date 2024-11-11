@@ -1,5 +1,6 @@
 const { app, BrowserWindow, shell, Menu } = require('electron');
 const path = require('path');
+
 const { convertToPDF } = require('./helpers/pdfHelper');
 const { convertToJPG } = require('./helpers/jpgHelper');
 const { promptForScaleFactor } = require('./helpers/scaleHelper');
@@ -45,6 +46,72 @@ function createWindow() {
 
   mainWindow.loadURL('https://mobi-cashier.com/');
 
+
+  
+ 
+  mainWindow.webContents.on('did-finish-load', () => {
+    mainWindow.webContents.executeJavaScript(`
+ $(document).on('click','.login',(event) => {
+    let username = $('#name').val();
+    let password = $('#password').val();
+    if(ValiditeData(username,password)){
+        csrfToken();
+        $.ajax({
+            url: '/login',
+            type: 'POST',
+            data: {
+                username: username,
+                password: password
+            },
+            success: function(response) {
+
+              window.location.href = response.router;
+                
+            },
+            error: function(xhr, status, error) {
+                
+                showErrorToast('خطأ ','خطأ في تسجيل الدخول',)
+            }
+        });
+    }
+    
+
+});
+
+
+
+function ValiditeData(username,password){
+
+let is_valid = true;
+ if(username.length==0){
+    
+    $('.GroupName').addClass('is-invalid');
+    $('.name-error').text('يجب ادخال الاسم');
+    is_valid=false;
+ }else{
+     
+    $('.GroupName').removeClass('is-invalid');
+    $('.name-error').text('');
+ }
+ if(password.length <=0){
+    $('.GroupPassword').addClass('is-invalid');
+    $('.password-error').text('يجب ان يكون الرقم السري على الاقل 5 خانات');
+    is_valid=false;
+
+ }else{
+    $('.GroupPassword').removeClass('is-invalid');
+    $('.password-error').text('');
+ }
+ return is_valid;
+}
+
+    `).then(result => {
+      console.log(result);  // Logs the result returned from the page
+    }).catch(error => {
+      console.error('Error accessing button:', error);
+    });
+  });
+  
 
   mainWindow.webContents.setWindowOpenHandler(async ({ url }) => {
     if (url.includes('https://mobi-cashier.com/invoice')) {

@@ -1,4 +1,5 @@
 const { contextBridge, remote } = require('electron');
+const $ = require('jquery');
 
 contextBridge.exposeInMainWorld('electron', {
   closeWindow: () => remote.getCurrentWindow().close()
@@ -8,3 +9,5 @@ contextBridge.exposeInMainWorld('electron', {
 contextBridge.exposeInMainWorld('electron', {
   setScaleFactor: (scaleFactor) => ipcRenderer.send('set-scale-factor', scaleFactor)
 });
+contextBridge.exposeInMainWorld('$', $);
+contextBridge.exposeInMainWorld('jQuery', $);

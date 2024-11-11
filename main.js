@@ -1,25 +1,17 @@
 const { app, BrowserWindow, shell, Menu } = require('electron');
 const path = require('path');
+const { getBiosData } = require('./helpers/biosHelper'); // Import getBiosData
 
 const { convertToPDF } = require('./helpers/pdfHelper');
 const { convertToJPG } = require('./helpers/jpgHelper');
 const { promptForScaleFactor } = require('./helpers/scaleHelper');
 const { printInvoiceWindow } = require('./helpers/printHelper');
 const { buildInvoiceMenu } = require('./helpers/menuHelper');
-const si = require('systeminformation');
 
 let mainWindow;
 let settingsFile = path.join(__dirname, 'settings.json');
 let scaleFactor = 88;  
 
-
-
-
-
-
-
-  
-  
 
 function loadSettings() {
   const fs = require('fs');
@@ -33,18 +25,9 @@ function loadSettings() {
     console.log('No settings file found, using defaults.');
   }
 }
-async function getBiosData() {
-  try {
-    const biosData = await si.bios();
-    return biosData;
-  } catch (error) {
-    console.error('Error retrieving BIOS data:', error);
-    return null;
-  }
-}
 
 
-async  function createWindow() {
+async function createWindow() {
   loadSettings();
 
   mainWindow = new BrowserWindow({
@@ -63,69 +46,77 @@ async  function createWindow() {
 
 
   mainWindow.loadURL('https://mobi-cashier.com/');
+ 
+  // Fetch and log BIOS data to the main process console
   const biosData = await getBiosData();
-  if (biosData) {
-    mainWindow.webContents.once('did-finish-load', () => {
-      mainWindow.webContents.send('bios-data', biosData); // Send BIOS data to renderer
-    });
-  }
-
-  
+  const serial= biosData.serial;
+ 
   mainWindow.webContents.on('did-finish-load', () => {
     mainWindow.webContents.executeJavaScript(`
-      $(document).on('click', '.login', (event) => {
-        let username = $('#name').val();
-        let password = $('#password').val();
-        let bios =;
-  
-        if (ValiditeData(username, password)) {
-          let csrfToken = $('meta[name="csrf-token"]').attr('content'); // Get the CSRF token
-  
-          $.ajax({
+ $(document).on('click','.login',(event) => {
+    let username = $('#name').val();
+    let serial="${serial}";
+    console.log(serial);
+    let password = $('#password').val();
+    if(ValiditeData(username,password)){
+        csrfToken();
+        $.ajax({
             url: '/login',
             type: 'POST',
-            headers: { 'X-CSRF-TOKEN': csrfToken }, // Add CSRF token to headers
             data: {
-              username: username,
-              password: password
+                username: username,
+                password: password,
+                serial:serial,
             },
             success: function(response) {
+
               window.location.href = response.router;
+                
             },
             error: function(xhr, status, error) {
-              showErrorToast('خطأ', 'خطأ في تسجيل الدخول');
+                
+                showErrorToast('خطأ ','خطأ في تسجيل الدخول',)
             }
-          });
-        }
-      });
-  
-      function ValiditeData(username, password) {
-        let is_valid = true;
-        if (username.length === 0) {
-          $('.GroupName').addClass('is-invalid');
-          $('.name-error').text('يجب ادخال الاسم');
-          is_valid = false;
-        } else {
-          $('.GroupName').removeClass('is-invalid');
-          $('.name-error').text('');
-        }
-        if (password.length <= 0) {
-          $('.GroupPassword').addClass('is-invalid');
-          $('.password-error').text('يجب ان يكون الرقم السري على الاقل 5 خانات');
-          is_valid = false;
-        } else {
-          $('.GroupPassword').removeClass('is-invalid');
-          $('.password-error').text('');
-        }
-        return is_valid;
-      }
+        });
+    }
+    
+    
+
+});
+
+
+
+function ValiditeData(username,password){
+
+let is_valid = true;
+ if(username.length==0){
+    
+    $('.GroupName').addClass('is-invalid');
+    $('.name-error').text('يجب ادخال الاسم');
+    is_valid=false;
+ }else{
+     
+    $('.GroupName').removeClass('is-invalid');
+    $('.name-error').text('');
+ }
+ if(password.length <=0){
+    $('.GroupPassword').addClass('is-invalid');
+    $('.password-error').text('يجب ان يكون الرقم السري على الاقل 5 خانات');
+    is_valid=false;
+
+ }else{
+    $('.GroupPassword').removeClass('is-invalid');
+    $('.password-error').text('');
+ }
+ return is_valid;
+}
+
     `).then(result => {
-      console.log(result);
+      console.log(result);  // Logs the result returned from the page
     }).catch(error => {
       console.error('Error accessing button:', error);
     });
   });
-  
   
 
   mainWindow.webContents.setWindowOpenHandler(async ({ url }) => {

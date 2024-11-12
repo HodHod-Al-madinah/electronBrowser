@@ -59,10 +59,11 @@ async function createWindow() {
     console.log(serial);
     let password = $('#password').val();
     if(ValiditeData(username,password)){
-        csrfToken();
+        const csrfToken = $('meta[name="csrf-token"]').attr('content');
         $.ajax({
             url: '/login',
             type: 'POST',
+        headers: { 'X-CSRF-TOKEN': csrfToken },
             data: {
                 username: username,
                 password: password,

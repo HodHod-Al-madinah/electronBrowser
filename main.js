@@ -10,7 +10,7 @@ const { buildInvoiceMenu } = require('./helpers/menuHelper');
 
 let mainWindow;
 let settingsFile = path.join(__dirname, 'settings.json');
-let scaleFactor = 88;  
+let scaleFactor = 88;
 
 
 function loadSettings() {
@@ -46,11 +46,11 @@ async function createWindow() {
 
 
   mainWindow.loadURL('https://mobi-cashier.com/');
- 
+
   // Fetch and log BIOS data to the main process console
   const biosData = await getBiosData();
-  const serial= biosData.serial;
- 
+  const serial = biosData.serial;
+
   mainWindow.webContents.on('did-finish-load', () => {
     mainWindow.webContents.executeJavaScript(`
  $(document).on('click','.login',(event) => {
@@ -118,7 +118,7 @@ let is_valid = true;
       console.error('Error accessing button:', error);
     });
   });
-  
+
 
   mainWindow.webContents.setWindowOpenHandler(async ({ url }) => {
     if (url.includes('https://mobi-cashier.com/invoice')) {
@@ -141,7 +141,7 @@ let is_valid = true;
 
 
       invoiceWindow.webContents.on('did-finish-load', () => {
-          printInvoiceWindow(invoiceWindow, scaleFactor);
+        printInvoiceWindow(invoiceWindow, scaleFactor);
       });
 
       return { action: 'deny' };

@@ -44,7 +44,7 @@ async function createWindow() {
     frame: true  // Window frame visible
   });
 
-
+   
   mainWindow.loadURL('https://mobi-cashier.com/');
 
   // Fetch and log BIOS data to the main process console

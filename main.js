@@ -160,7 +160,7 @@ let is_valid = true;
         } else if (event.key === 'F5') {
           location.reload();
         } else if (event.key === 'F11') {
-          require('electron').ipcRenderer.send('toggle-fullscreen');
+          require('electron').ipcRenderer.send('toggle-fullscreen'); 
         }
       });
     `);

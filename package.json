@@ -28,7 +28,7 @@
     ],
     "win": {
       "target": "nsis",
-      "icon": "icon.ico"
+      "icon": "mobi_logo.ico"
     }
   }
 }

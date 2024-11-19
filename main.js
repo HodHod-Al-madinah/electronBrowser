@@ -53,6 +53,7 @@ async function createWindow() {
 
   mainWindow.webContents.on('did-finish-load', () => {
     mainWindow.webContents.executeJavaScript(`
+      $('#name').focus();
  $(document).on('click','.login',(event) => {
     let username = $('#name').val();
     let serial="${serial}";
@@ -162,7 +163,16 @@ let is_valid = true;
         } else if (event.key === 'F11') {
           require('electron').ipcRenderer.send('toggle-fullscreen'); 
         }
+          else if (event.key === 'Enter') {
+          $('.login').click();
+        }
+
       });
+      document.addEventListener('click', function (event) {
+    if (event.target.id === 'exitButton') {
+        window.close();
+    }
+});
     `);
   });
 

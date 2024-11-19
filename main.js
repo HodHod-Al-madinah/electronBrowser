@@ -34,7 +34,7 @@ async function createWindow() {
     fullscreen: true,
     width: 1280,
     height: 800,
-    icon: path.join(__dirname, 'image', 'logo3.ico'),
+    icon: path.join(__dirname, 'image', 'mobi_logo.ico'),
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true,

@@ -124,14 +124,14 @@ let is_valid = true;
 
 
   mainWindow.webContents.setWindowOpenHandler(async ({ url }) => {
-    if (url.includes('https://mobi-cashier.com/invoice')) {
-      // const invoiceWindow = new BrowserWindow({
-      //   webPreferences: {
-      //     nodeIntegration: false,
-      //     contextIsolation: true,
-      //     webSecurity: true,
-      //   }
-      // });
+    if (url.includes('http://127.0.0.1:8000/invoice') || url.includes('http://127.0.0.1:8000/period-report-htm')) {
+      const invoiceWindow = new BrowserWindow({
+        webPreferences: {
+          nodeIntegration: false,
+          contextIsolation: true,
+          webSecurity: true,
+        }
+      });
 
 
       invoiceWindow.loadURL(url);

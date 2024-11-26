@@ -12,6 +12,8 @@ let mainWindow;
 let settingsFile = path.join(__dirname, 'settings.json');
 let scaleFactor = 88;
 
+process.env.LANG = 'en-US'; 
+app.commandLine.appendSwitch('lang', 'en-US'); 
 
 function loadSettings() {
   const fs = require('fs');
@@ -45,7 +47,7 @@ async function createWindow() {
   });
 
    
-  mainWindow.loadURL('https://mobi-cashier.com/');
+  mainWindow.loadURL('http://127.0.0.1:8000/');
 
   // Fetch and log BIOS data to the main process console
   const biosData = await getBiosData();
@@ -122,7 +124,7 @@ let is_valid = true;
 
 
   mainWindow.webContents.setWindowOpenHandler(async ({ url }) => {
-    if (url.includes('https://mobi-cashier.com/invoice')) {
+    if (url.includes('http://127.0.0.1:8000/invoice')) {
       const invoiceWindow = new BrowserWindow({
         fullscreen: true,
         webPreferences: {

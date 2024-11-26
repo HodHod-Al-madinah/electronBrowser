@@ -45,7 +45,7 @@ async function createWindow() {
   });
 
    
-  mainWindow.loadURL('https://mobi-cashier.com/');
+  mainWindow.loadURL('http://127.0.0.1:8000/');
 
   // Fetch and log BIOS data to the main process console
   const biosData = await getBiosData();
@@ -122,7 +122,7 @@ let is_valid = true;
 
 
   mainWindow.webContents.setWindowOpenHandler(async ({ url }) => {
-    if (url.includes('https://mobi-cashier.com/invoice')) {
+    if (url.includes('http://127.0.0.1:8000/invoice')||url.includes('http://127.0.0.1:8000/period-report')) {
       const invoiceWindow = new BrowserWindow({
         fullscreen: true,
         webPreferences: {
@@ -151,6 +151,9 @@ let is_valid = true;
       return { action: 'deny' };
     }
   });
+
+
+  
 
 
   mainWindow.webContents.on('did-finish-load', () => {

@@ -12,6 +12,8 @@ let mainWindow;
 let settingsFile = path.join(__dirname, 'settings.json');
 let scaleFactor = 88;
 
+process.env.LANG = 'en-US'; 
+app.commandLine.appendSwitch('lang', 'en-US'); 
 
 function loadSettings() {
   const fs = require('fs');
@@ -122,15 +124,14 @@ let is_valid = true;
 
 
   mainWindow.webContents.setWindowOpenHandler(async ({ url }) => {
-    if (url.includes('http://127.0.0.1:8000/invoice')||url.includes('http://127.0.0.1:8000/period-report')) {
-      const invoiceWindow = new BrowserWindow({
-        fullscreen: true,
-        webPreferences: {
-          nodeIntegration: false,
-          contextIsolation: true,
-          webSecurity: true,
-        }
-      });
+    if (url.includes('https://mobi-cashier.com/invoice')) {
+      // const invoiceWindow = new BrowserWindow({
+      //   webPreferences: {
+      //     nodeIntegration: false,
+      //     contextIsolation: true,
+      //     webSecurity: true,
+      //   }
+      // });
 
 
       invoiceWindow.loadURL(url);

@@ -1,5 +1,5 @@
 {
-  "name": "mobi-cacher",
+  "name": "mobi-cashier",
   "version": "1.0.0",
   "main": "main.js",
   "scripts": {
@@ -22,7 +22,7 @@
   },
   "build": {
     "appId": "com.hodhod.browser",
-    "productName": "mobi-cacher",
+    "productName": "mobi-cashier",
     "files": [
       "**/*"
     ],

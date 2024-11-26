@@ -1,4 +1,5 @@
 const { contextBridge, ipcRenderer, remote } = require('electron');
+window.language = 'en-US'; 
 
 // Expose all functions and libraries in a single contextBridge call
 contextBridge.exposeInMainWorld('electron', {

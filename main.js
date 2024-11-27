@@ -1,24 +1,27 @@
-const { app, BrowserWindow, shell, Menu } = require('electron');
+const { app, BrowserWindow, shell, Menu, ipcMain } = require('electron');
 const path = require('path');
-const { getBiosData } = require('./helpers/biosHelper'); // Import getBiosData
+const fs = require('fs');
 
-const { convertToPDF } = require('./helpers/pdfHelper');
-const { convertToJPG } = require('./helpers/jpgHelper');
-const { promptForScaleFactor } = require('./helpers/scaleHelper');
-const { printInvoiceWindow } = require('./helpers/printHelper');
-const { buildInvoiceMenu } = require('./helpers/menuHelper');
+// Helper imports
+const { getBiosData } = require('./helpers/biosHelper'); // BIOS data
+const { convertToPDF } = require('./helpers/pdfHelper'); // PDF conversion
+const { convertToJPG } = require('./helpers/jpgHelper'); // JPG conversion
+const { promptForScaleFactor } = require('./helpers/scaleHelper'); // Scale factor prompt
+const { printInvoiceWindow } = require('./helpers/printHelper'); // Print helper
+const { buildInvoiceMenu } = require('./helpers/menuHelper'); // Invoice menu builder
 
-let mainWindow;
+let mainWindow, loadingWindow;
 let settingsFile = path.join(__dirname, 'settings.json');
 let scaleFactor = 88;
 
-process.env.LANG = 'en-US'; 
-app.commandLine.appendSwitch('lang', 'en-US'); 
+// Set language
+process.env.LANG = 'en-US';
+app.commandLine.appendSwitch('lang', 'en-US');
 
+// Load user settings
 function loadSettings() {
-  const fs = require('fs');
   try {
-    const data = fs.readFileSync(settingsFile);
+    const data = fs.readFileSync(settingsFile, 'utf8');
     const settings = JSON.parse(data);
     if (settings.scaleFactor) {
       scaleFactor = settings.scaleFactor;
@@ -28,8 +31,23 @@ function loadSettings() {
   }
 }
 
+// Create loading window
+function createLoadingWindow() {
+  loadingWindow = new BrowserWindow({
+    width: 400,
+    height: 300,
+    frame: false,
+    transparent: true,
+    alwaysOnTop: true,
+    webPreferences: {
+      contextIsolation: true,
+    },
+  });
+  loadingWindow.loadFile(path.join(__dirname, 'loading.html'));
+}
 
-async function createWindow() {
+// Create main window
+async function createMainWindow() {
   loadSettings();
 
   mainWindow = new BrowserWindow({
@@ -38,24 +56,20 @@ async function createWindow() {
     height: 800,
     icon: path.join(__dirname, 'image', 'mobi_logo.ico'),
     webPreferences: {
-      nodeIntegration: false,
+      preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,
-      webSecurity: true,
-      preload: path.join(__dirname, 'preload.js')
     },
-    frame: true  // Window frame visible
+    show: false, // Initially hidden until content is loaded
   });
 
-   
-  mainWindow.loadURL('https://mobi-cashier.com/');
+  try {
+    mainWindow.loadURL('http://127.0.0.1:8000/');
+    const biosData = await getBiosData();
+    const serial = biosData.serial;
 
-  // Fetch and log BIOS data to the main process console
-  const biosData = await getBiosData();
-  const serial = biosData.serial;
-
-  mainWindow.webContents.on('did-finish-load', () => {
-    mainWindow.webContents.executeJavaScript(`
-      $('#name').focus();
+    mainWindow.webContents.on('did-finish-load', () => {
+      mainWindow.webContents.executeJavaScript(`
+            $('#name').focus();
  $(document).on('click','.login',(event) => {
     let username = $('#name').val();
     let serial="${serial}";
@@ -114,94 +128,79 @@ let is_valid = true;
  }
  return is_valid;
 }
+      `);
 
-    `).then(result => {
-      console.log(result);  // Logs the result returned from the page
-    }).catch(error => {
-      console.error('Error accessing button:', error);
+      if (loadingWindow) {
+        loadingWindow.close();
+        loadingWindow = null;
+      }
+      mainWindow.show();
     });
-  });
 
+  } catch (error) {
+    console.error("Error occurred while loading the window:", error);
+    reloadApp();
+  }
 
   mainWindow.webContents.setWindowOpenHandler(async ({ url }) => {
-    if (url.includes('https://mobi-cashier.com/invoice') || url.includes('https://mobi-cashier.com/period-report-htm')) {
-      const invoiceWindow = new BrowserWindow({
-        show: false, // Do not show the window
-
-        webPreferences: {
-          nodeIntegration: false,
-          contextIsolation: true,
-          webSecurity: true,
-        }
-      });
-
-
-      invoiceWindow.loadURL(url);
-
-
-      const invoiceMenuTemplate = buildInvoiceMenu(convertToPDF, convertToJPG, promptForScaleFactor, invoiceWindow);
-      const invoiceMenu = Menu.buildFromTemplate(invoiceMenuTemplate);
-      invoiceWindow.setMenu(invoiceMenu);
-
-
-      invoiceWindow.webContents.on('did-finish-load', () => {
-        printInvoiceWindow(invoiceWindow, scaleFactor);
-      });
-
-      return { action: 'deny' };
-    } else {
-      shell.openExternal(url);
-      return { action: 'deny' };
+    try {
+      if (url.includes('/invoice') || url.includes('/period-report-htm')) {
+        const invoiceWindow = new BrowserWindow({
+          show: false,
+          webPreferences: { contextIsolation: true },
+        });
+        invoiceWindow.loadURL(url);
+        invoiceWindow.setMenu(Menu.buildFromTemplate(buildInvoiceMenu(convertToPDF, convertToJPG, promptForScaleFactor, invoiceWindow)));
+        invoiceWindow.webContents.on('did-finish-load', () => printInvoiceWindow(invoiceWindow, scaleFactor));
+        return { action: 'deny' };
+      } else {
+        shell.openExternal(url);
+        return { action: 'deny' };
+      }
+    } catch (error) {
+      console.error("Error in window handler:", error);
+      reloadApp();
     }
   });
 
-
-  
-
-
-  mainWindow.webContents.on('did-finish-load', () => {
-    mainWindow.webContents.executeJavaScript(`
-      document.addEventListener('keydown', function(event) {
-        if (event.key === 'F12') {
-          window.close(); 
-        } else if (event.key === 'F5') {
-          location.reload();
-        } else if (event.key === 'F11') {
-          require('electron').ipcRenderer.send('toggle-fullscreen'); 
-        }
-          else if (event.key === 'Enter') {
-          $('.login').click();
-        }
-
-      });
-      document.addEventListener('click', function (event) {
-    if (event.target.id === 'exitButton') {
-        window.close();
-    }
-});
-    `);
-  });
-
-
-  const { ipcMain } = require('electron');
   ipcMain.on('toggle-fullscreen', () => {
-    const isFullScreen = mainWindow.isFullScreen();
-    mainWindow.setFullScreen(!isFullScreen);
+    mainWindow.setFullScreen(!mainWindow.isFullScreen());
   });
 }
 
-
-app.whenReady().then(createWindow);
-
-
-app.on('window-all-closed', () => {
-  if (process.platform !== 'darwin') {
-    app.quit();
+// Reload the app on error
+function reloadApp() {
+  if (mainWindow) {
+    mainWindow.reload();
+  } else {
+    app.relaunch();
+    app.exit(0);
   }
+}
+
+// Global error handling
+process.on('uncaughtException', (error) => {
+  console.error('Uncaught Exception:', error);
+  reloadApp();
 });
 
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('Unhandled Rejection:', reason);
+  reloadApp();
+});
+
+// App initialization
+app.whenReady().then(() => {
+  createLoadingWindow();
+  createMainWindow();
+});
+
+// Close the app when all windows are closed
+app.on('window-all-closed', () => {
+  if (process.platform !== 'darwin') app.quit();
+});
+
+// Recreate the window on macOS when the dock icon is clicked
 app.on('activate', () => {
-  if (BrowserWindow.getAllWindows().length === 0) {
-    createWindow();
-  }
+  if (BrowserWindow.getAllWindows().length === 0) createMainWindow();
 });

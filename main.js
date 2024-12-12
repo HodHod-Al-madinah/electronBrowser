@@ -78,7 +78,7 @@ async function createWindow() {
             },
             success: function(response) {
 
-              window.location.href = response.router;
+                            window.location.href = window.location.origin +'/' +response.router;
                 
             },
             error: function(xhr, status, error) {

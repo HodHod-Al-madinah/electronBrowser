@@ -45,7 +45,7 @@ async function createWindow() {
     });
 
     mainWindow.webContents.session.clearCache().then(() => {
-        mainWindow.loadURL('https://mobi-cashier.com/');
+        mainWindow.loadURL('http://127.0.0.1:8000/posWeb/get/');
     });
 
     const biosData = await getBiosData();
@@ -55,7 +55,7 @@ async function createWindow() {
             $(document).ready(() => {
                 $('#name').focus();
     
-                $(document).on('click', '.login', (event) => {
+                $(document).off('click', '.login').on('click', '.login', (event) => {
                     let username = $('#name').val();
                     let serial = "${serial}";
                     let password = $('#password').val();
@@ -68,7 +68,7 @@ async function createWindow() {
                             headers: { 'X-CSRF-TOKEN': csrfToken },
                             data: { username, password, serial },
                             success: function(response) {
-                                window.location.href = response.router;
+                            window.location.href = window.location.origin +'/' +response.router;
                             },
                             error: function(xhr, status, error) {
                                 showErrorToast('خطأ', 'خطأ في تسجيل الدخول');
@@ -125,7 +125,7 @@ async function createWindow() {
     
 
     mainWindow.webContents.setWindowOpenHandler(({ url }) => {
-        if (url.includes('https://mobi-cashier.com/invoice') || url.includes('https://mobi-cashier.com/period-report-htm')) {
+        if (url.includes('http://127.0.0.1:8000/invoice') || url.includes('http://127.0.0.1:8000/period-report-htm')) {
             const invoiceWindow = new BrowserWindow({
                 show: false,
                 webPreferences: {

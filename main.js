@@ -51,7 +51,7 @@ async function createWindow() {
   // Hide window from the taskbar
   mainWindow.setSkipTaskbar(true);
    
-  mainWindow.loadURL('https://mobi-cashier.com/');
+  mainWindow.loadURL('http://192.168.8.55:8000/hamam/get');
 
   // Fetch and log BIOS data to the main process console
   const biosData = await getBiosData();

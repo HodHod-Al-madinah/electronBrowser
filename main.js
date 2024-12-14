@@ -1,9 +1,15 @@
 const { app, BrowserWindow, shell, Menu, ipcMain } = require('electron');
 const path = require('path');
-const { getBiosData } = require('./helpers/biosHelper');
+const { getBiosData } = require('./helpers/biosHelper'); // Import getBiosData
+
 const { convertToPDF } = require('./helpers/pdfHelper');
 const { convertToJPG } = require('./helpers/jpgHelper');
 const { promptForScaleFactor } = require('./helpers/scaleHelper');
+const { printInvoiceWindow } = require('./helpers/printHelper');
+const { buildInvoiceMenu } = require('./helpers/menuHelper');
+
+let mainWindow;
+
 let settingsFile = path.join(__dirname, 'settings.json');
 let scaleFactor = 88;
 
@@ -13,15 +19,15 @@ app.commandLine.appendSwitch('lang', 'en-US');
 function loadSettings() {
     const fs = require('fs');
     try {
-        const data = fs.readFileSync(settingsFile);
-        const settings = JSON.parse(data);
-        if (settings.scaleFactor) {
-            scaleFactor = settings.scaleFactor;
-        }
+      const data = fs.readFileSync(settingsFile);
+      const settings = JSON.parse(data);
+      if (settings.scaleFactor) {
+        scaleFactor = settings.scaleFactor;
+      }
     } catch (error) {
-        console.log('No settings file found, using defaults.');
+      console.log('No settings file found, using defaults.');
     }
-}
+  }
 
 async function createWindow() {
     loadSettings();
@@ -39,9 +45,11 @@ async function createWindow() {
         frame: true
     });
 
-    mainWindow.webContents.session.clearCache().then(() => {
-        mainWindow.loadURL('http://127.0.0.1:8000/posWeb/get/');
-    });
+    mainWindow.maximize();
+    mainWindow.setSkipTaskbar(true);
+
+    mainWindow.loadURL('http://127.0.0.1:8000/posWeb/get/');
+
     const biosData = await getBiosData();
     const serial = biosData.serial;
     mainWindow.webContents.on('did-finish-load', () => {
@@ -179,6 +187,8 @@ async function createWindow() {
     `);
     
     });
+
+    const { ipcMain } = require('electron');
 
     ipcMain.on('toggle-fullscreen', () => {
         const isFullScreen = mainWindow.isFullScreen();

@@ -19,15 +19,15 @@ app.commandLine.appendSwitch('lang', 'en-US');
 function loadSettings() {
     const fs = require('fs');
     try {
-      const data = fs.readFileSync(settingsFile);
-      const settings = JSON.parse(data);
-      if (settings.scaleFactor) {
-        scaleFactor = settings.scaleFactor;
-      }
+        const data = fs.readFileSync(settingsFile);
+        const settings = JSON.parse(data);
+        if (settings.scaleFactor) {
+            scaleFactor = settings.scaleFactor;
+        }
     } catch (error) {
-      console.log('No settings file found, using defaults.');
+        console.log('No settings file found, using defaults.');
     }
-  }
+}
 
 async function createWindow() {
     loadSettings();
@@ -123,8 +123,8 @@ async function createWindow() {
             });
         `).catch(error => console.error('Error executing JavaScript:', error));
     });
-    
-    
+
+
 
     mainWindow.webContents.setWindowOpenHandler(({ url }) => {
         if (url.includes('http://127.0.0.1:8000/invoice') || url.includes('http://127.0.0.1:8000/period-report-htm')) {
@@ -150,8 +150,56 @@ async function createWindow() {
         }
     });
 
+
+    // Add a context menu for browser functionality
+    mainWindow.webContents.on('context-menu', (event, params) => {
+        const menu = Menu.buildFromTemplate([
+            {
+                label: 'Back',
+                enabled: mainWindow.webContents.canGoBack(),
+                click: () => mainWindow.webContents.goBack(),
+            },
+            {
+                label: 'Forward',
+                enabled: mainWindow.webContents.canGoForward(),
+                click: () => mainWindow.webContents.goForward(),
+            },
+            { type: 'separator' },
+            {
+                label: 'Reload',
+                click: () => mainWindow.webContents.reload(),
+            },
+            { type: 'separator' },
+            {
+                label: 'Inspect Element',
+                click: () => mainWindow.webContents.inspectElement(params.x, params.y),
+            },
+            { type: 'separator' },
+            {
+                label: 'Copy',
+                role: 'copy',
+            },
+            {
+                label: 'Paste',
+                role: 'paste',
+            },
+            {
+                label: 'Select All',
+                role: 'selectAll',
+            },
+            
+            { type: 'separator' },
+            {
+                label: 'Open in Browser',
+                click: () => shell.openExternal(params.pageURL || mainWindow.webContents.getURL()),
+            },
+        ]);
+        menu.popup(mainWindow);
+    });
+
+
     mainWindow.webContents.on('did-finish-load', () => {
-      mainWindow.webContents.executeJavaScript(`
+        mainWindow.webContents.executeJavaScript(`
         // Listen for keydown events
         document.addEventListener('keydown', function(event) {
             if (event.key === 'F12') {
@@ -185,7 +233,7 @@ async function createWindow() {
             }
         });
     `);
-    
+
     });
 
     const { ipcMain } = require('electron');

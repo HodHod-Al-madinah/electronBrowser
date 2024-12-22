@@ -187,7 +187,7 @@ async function createWindow() {
                 label: 'Select All',
                 role: 'selectAll',
             },
-            
+
             { type: 'separator' },
             {
                 label: 'Open in Browser',
@@ -197,7 +197,7 @@ async function createWindow() {
         menu.popup(mainWindow);
     });
 
-
+   
     mainWindow.webContents.on('did-finish-load', () => {
         mainWindow.webContents.executeJavaScript(`
         // Listen for keydown events

@@ -46,7 +46,7 @@ async function createWindow() {
     });
 
     mainWindow.maximize();
-    mainWindow.setSkipTaskbar(true);
+    mainWindow.setSkipTaskbar(false);
 
     mainWindow.loadURL('http://127.0.0.1:8000/posWeb/get/');
 

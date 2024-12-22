@@ -151,51 +151,56 @@ async function createWindow() {
     });
 
 
-    // Add a context menu for browser functionality
-    mainWindow.webContents.on('context-menu', (event, params) => {
-        const menu = Menu.buildFromTemplate([
-            {
-                label: 'Back',
-                enabled: mainWindow.webContents.canGoBack(),
-                click: () => mainWindow.webContents.goBack(),
-            },
-            {
-                label: 'Forward',
-                enabled: mainWindow.webContents.canGoForward(),
-                click: () => mainWindow.webContents.goForward(),
-            },
-            { type: 'separator' },
-            {
-                label: 'Reload',
-                click: () => mainWindow.webContents.reload(),
-            },
-            { type: 'separator' },
-            {
-                label: 'Inspect Element',
-                click: () => mainWindow.webContents.inspectElement(params.x, params.y),
-            },
-            { type: 'separator' },
-            {
-                label: 'Copy',
-                role: 'copy',
-            },
-            {
-                label: 'Paste',
-                role: 'paste',
-            },
-            {
-                label: 'Select All',
-                role: 'selectAll',
-            },
-
-            { type: 'separator' },
-            {
-                label: 'Open in Browser',
-                click: () => shell.openExternal(params.pageURL || mainWindow.webContents.getURL()),
-            },
-        ]);
-        menu.popup(mainWindow);
+  
+  // Mimic Chrome-like context menu
+  mainWindow.webContents.on('context-menu', (event, params) => {
+    const menu = Menu.buildFromTemplate([
+      {
+        label: 'Back',
+        enabled: mainWindow.webContents.canGoBack(),
+        click: () => mainWindow.webContents.goBack(),
+      },
+      {
+        label: 'Forward',
+        enabled: mainWindow.webContents.canGoForward(),
+        click: () => mainWindow.webContents.goForward(),
+      },
+      { type: 'separator' },
+      {
+        label: 'Reload',
+        click: () => mainWindow.webContents.reload(),
+      },
+      { type: 'separator' },
+      {
+        label: 'Copy',
+        role: 'copy',
+      },
+      {
+        label: 'Paste',
+        role: 'paste',
+      },
+      { type: 'separator' },
+      {
+        label: 'View Source',
+        click: () => {
+          const url = mainWindow.webContents.getURL();
+          mainWindow.webContents.loadURL(`view-source:${url}`);
+        },
+      },
+      {
+        label: 'Inspect Element',
+        click: () => mainWindow.webContents.inspectElement(params.x, params.y),
+      },
+    ]);
+  
+    // Display the menu
+    menu.popup({
+      window: mainWindow,
+      x: params.x,
+      y: params.y,
     });
+  });
+  
 
    
     mainWindow.webContents.on('did-finish-load', () => {

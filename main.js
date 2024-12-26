@@ -210,38 +210,37 @@ mainWindow.webContents.on('did-finish-load', () => {
 
     mainWindow.webContents.on('did-finish-load', () => {
         mainWindow.webContents.executeJavaScript(`
-        // Listen for keydown events
-        document.addEventListener('keydown', function(event) {
-            if (event.key === 'F12') {
-                window.close();
-            } else if (event.key === 'F5') {
-                location.reload();
-            } else if (event.key === 'F11') {
-                require('electron').ipcRenderer.send('toggle-fullscreen');
-            } else if (event.key === 'Enter') {
-                const currentElement = document.activeElement;
+            $(document).ready(() => {
+                // Handle keydown events
+                $(document).on('keydown', (event) => {
+                    if (event.key === 'F12') {
+                        window.close();
+                    } else if (event.key === 'F5') {
+                        location.reload();
+                    } else if (event.key === 'F11') {
+                        require('electron').ipcRenderer.send('toggle-fullscreen');
+                    } else if (event.key === 'Enter') {
+                        const $currentElement = $(document.activeElement);
+                        
+                        // Check if focused on the 'name' input and focus the 'password' input
+                        if ($currentElement.attr('id') === 'name') {
+                            $('#password').focus();
+                        } else if ($currentElement.attr('id') === 'password') {
+                            $('.login').click();
+                        }
+                    }
+                });
     
-                // Check if focused on the 'name' input and focus the 'password' input
-                if (currentElement && currentElement.id === 'name') {
-                    $('#password').focus();
-                } 
-                else if (currentElement && currentElement.id === 'password') {
-                    $('.login').click(); 
-                } 
-              
-            }
-        });
-    
-        // Listen for click events to close the window
-        document.addEventListener('click', function(event) {
-            if (event.target.id === 'exitButton') {
-                window.close();
-            }
-        });
-    `);
-
+                // Handle click events to close the window
+                $(document).on('click', (event) => {
+                    if ($(event.target).attr('id') === 'exitButton') {
+                        window.close();
+                    }
+                });
+            });
+        `);
     });
-
+    
     const { ipcMain } = require('electron');
 
     ipcMain.on('toggle-fullscreen', () => {

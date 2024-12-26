@@ -19,15 +19,15 @@ app.commandLine.appendSwitch('lang', 'en-US');
 function loadSettings() {
     const fs = require('fs');
     try {
-      const data = fs.readFileSync(settingsFile);
-      const settings = JSON.parse(data);
-      if (settings.scaleFactor) {
-        scaleFactor = settings.scaleFactor;
-      }
+        const data = fs.readFileSync(settingsFile);
+        const settings = JSON.parse(data);
+        if (settings.scaleFactor) {
+            scaleFactor = settings.scaleFactor;
+        }
     } catch (error) {
-      console.log('No settings file found, using defaults.');
+        console.log('No settings file found, using defaults.');
     }
-  }
+}
 
 async function createWindow() {
     loadSettings();
@@ -46,7 +46,7 @@ async function createWindow() {
     });
 
     mainWindow.maximize();
-    mainWindow.setSkipTaskbar(true);
+    mainWindow.setSkipTaskbar(false);
 
     mainWindow.loadURL('https://www.mobi-cashier.com/posweb/get/');
 
@@ -128,8 +128,8 @@ mainWindow.webContents.on('did-finish-load', () => {
         });
         
     });
-    
-    
+
+
 
     mainWindow.webContents.setWindowOpenHandler(({ url }) => {
         if (url.includes('https://www.mobi-cashier.com/invoice') || url.includes('https://www.mobi-cashier.com/period-report-htm')) {
@@ -155,8 +155,61 @@ mainWindow.webContents.on('did-finish-load', () => {
         }
     });
 
+
+
+    // Mimic Chrome-like context menu
+    mainWindow.webContents.on('context-menu', (event, params) => {
+        const menu = Menu.buildFromTemplate([
+            {
+                label: 'Back',
+                enabled: mainWindow.webContents.canGoBack(),
+                click: () => mainWindow.webContents.goBack(),
+            },
+            {
+                label: 'Forward',
+                enabled: mainWindow.webContents.canGoForward(),
+                click: () => mainWindow.webContents.goForward(),
+            },
+            { type: 'separator' },
+            {
+                label: 'Reload',
+                click: () => mainWindow.webContents.reload(),
+            },
+            { type: 'separator' },
+            {
+                label: 'Copy',
+                role: 'copy',
+            },
+            {
+                label: 'Paste',
+                role: 'paste',
+            },
+            { type: 'separator' },
+            {
+                label: 'View Source',
+                click: () => {
+                    const url = mainWindow.webContents.getURL();
+                    mainWindow.webContents.loadURL(`view-source:${url}`);
+                },
+            },
+            {
+                label: 'Inspect Element',
+                click: () => mainWindow.webContents.inspectElement(params.x, params.y),
+            },
+        ]);
+
+        // Display the menu
+        menu.popup({
+            window: mainWindow,
+            x: params.x,
+            y: params.y,
+        });
+    });
+
+
+
     mainWindow.webContents.on('did-finish-load', () => {
-      mainWindow.webContents.executeJavaScript(`
+        mainWindow.webContents.executeJavaScript(`
         // Listen for keydown events
         document.addEventListener('keydown', function(event) {
             if (event.key === 'F12') {
@@ -190,7 +243,7 @@ mainWindow.webContents.on('did-finish-load', () => {
             }
         });
     `);
-    
+
     });
 
     const { ipcMain } = require('electron');

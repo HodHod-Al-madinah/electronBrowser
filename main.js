@@ -52,16 +52,28 @@ async function createWindow() {
 
     const biosData = await getBiosData();
     const serial = biosData.serial;
-mainWindow.webContents.on('did-finish-load', () => {
-    mainWindow.webContents.executeJavaScript(`
+    mainWindow.webContents.on('did-finish-load', () => {
+        mainWindow.webContents.executeJavaScript(`
             $(document).ready(() => {
                 $('#name').focus();
     
                 $(document).off('click', '.login').on('click', '.login', (event) => {
+                    event.preventDefault();
+                    handleLogin();
+                });
+    
+                $(document).on('keypress', (event) => {
+                    if (event.key === 'Enter') {
+                        event.preventDefault();
+                        $('.login').click();
+                    }
+                });
+    
+                function handleLogin() {
                     let username = $('#name').val();
                     let serial = "${serial}";
                     let password = $('#password').val();
-                    
+    
                     if (validateData(username, password)) {
                         const csrfToken = $('meta[name="csrf-token"]').attr('content');
                         $.ajax({
@@ -70,18 +82,18 @@ mainWindow.webContents.on('did-finish-load', () => {
                             headers: { 'X-CSRF-TOKEN': csrfToken },
                             data: { username, password, serial },
                             success: function(response) {
-                            window.location.href = window.location.origin +'/' +response.router;
+                                window.location.href = window.location.origin + '/' + response.router;
                             },
                             error: function(xhr, status, error) {
                                 showErrorToast('خطأ', 'خطأ في تسجيل الدخول');
                             }
                         });
                     }
-                });
+                }
     
                 function validateData(username, password) {
                     let isValid = true;
-                    
+    
                     if (username.trim().length === 0) {
                         $('.GroupName').addClass('is-invalid');
                         $('.name-error').text('يجب ادخال الاسم');
@@ -90,7 +102,7 @@ mainWindow.webContents.on('did-finish-load', () => {
                         $('.GroupName').removeClass('is-invalid');
                         $('.name-error').text('');
                     }
-                    
+    
                     if (password.trim().length === 0) {
                         $('.GroupPassword').addClass('is-invalid');
                         $('.password-error').text('يجب  ادخال كلمة المرور');
@@ -99,7 +111,7 @@ mainWindow.webContents.on('did-finish-load', () => {
                         $('.GroupPassword').removeClass('is-invalid');
                         $('.password-error').text('');
                     }
-                    
+    
                     return isValid;
                 }
     
@@ -111,7 +123,7 @@ mainWindow.webContents.on('did-finish-load', () => {
                         <div class="custom-toast-header">\${title}</div>
                         <div class="custom-toast-body">\${message}</div>\`;
                     document.body.appendChild(toast);
-                    
+    
                     $(toast).fadeIn(100);
     
                     setTimeout(() => {
@@ -124,10 +136,10 @@ mainWindow.webContents.on('did-finish-load', () => {
         `).catch(error => {
             console.error('Error executing JavaScript:', error);
             // Refresh the page if there's an error
-            window.location.reload();
+            mainWindow.reload();
         });
-        
     });
+    
 
 
 
@@ -218,21 +230,6 @@ mainWindow.webContents.on('did-finish-load', () => {
                 location.reload();
             } else if (event.key === 'F11') {
                 require('electron').ipcRenderer.send('toggle-fullscreen');
-            } else if (event.key === 'Enter') {
-                const currentElement = document.activeElement;
-    
-                // Check if focused on the 'name' input and focus the 'password' input
-                if (currentElement && currentElement.id === 'name') {
-                    $('#password').focus(); // Using jQuery to focus the password field
-                } 
-                // If focused on the 'password' input, trigger the login button click
-                else if (currentElement && currentElement.id === 'password') {
-                    $('.login').click(); // Trigger login if on the password input
-                } 
-                // Fallback: Trigger login if neither of the inputs are focused
-                else {
-                    $('.login').click(); // Default to triggering login
-                }
             }
         });
     

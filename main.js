@@ -52,28 +52,16 @@ async function createWindow() {
 
     const biosData = await getBiosData();
     const serial = biosData.serial;
-    mainWindow.webContents.on('did-finish-load', () => {
-        mainWindow.webContents.executeJavaScript(`
+mainWindow.webContents.on('did-finish-load', () => {
+    mainWindow.webContents.executeJavaScript(`
             $(document).ready(() => {
                 $('#name').focus();
     
                 $(document).off('click', '.login').on('click', '.login', (event) => {
-                    event.preventDefault();
-                    handleLogin();
-                });
-    
-                $(document).on('keypress', (event) => {
-                    if (event.key === 'Enter') {
-                        event.preventDefault();
-                        $('.login').click();
-                    }
-                });
-    
-                function handleLogin() {
                     let username = $('#name').val();
                     let serial = "${serial}";
                     let password = $('#password').val();
-    
+                    
                     if (validateData(username, password)) {
                         const csrfToken = $('meta[name="csrf-token"]').attr('content');
                         $.ajax({
@@ -82,18 +70,18 @@ async function createWindow() {
                             headers: { 'X-CSRF-TOKEN': csrfToken },
                             data: { username, password, serial },
                             success: function(response) {
-                                window.location.href = window.location.origin + '/' + response.router;
+                            window.location.href = window.location.origin +'/' +response.router;
                             },
                             error: function(xhr, status, error) {
                                 showErrorToast('خطأ', 'خطأ في تسجيل الدخول');
                             }
                         });
                     }
-                }
+                });
     
                 function validateData(username, password) {
                     let isValid = true;
-    
+                    
                     if (username.trim().length === 0) {
                         $('.GroupName').addClass('is-invalid');
                         $('.name-error').text('يجب ادخال الاسم');
@@ -102,7 +90,7 @@ async function createWindow() {
                         $('.GroupName').removeClass('is-invalid');
                         $('.name-error').text('');
                     }
-    
+                    
                     if (password.trim().length === 0) {
                         $('.GroupPassword').addClass('is-invalid');
                         $('.password-error').text('يجب  ادخال كلمة المرور');
@@ -111,7 +99,7 @@ async function createWindow() {
                         $('.GroupPassword').removeClass('is-invalid');
                         $('.password-error').text('');
                     }
-    
+                    
                     return isValid;
                 }
     
@@ -123,7 +111,7 @@ async function createWindow() {
                         <div class="custom-toast-header">\${title}</div>
                         <div class="custom-toast-body">\${message}</div>\`;
                     document.body.appendChild(toast);
-    
+                    
                     $(toast).fadeIn(100);
     
                     setTimeout(() => {
@@ -136,15 +124,15 @@ async function createWindow() {
         `).catch(error => {
             console.error('Error executing JavaScript:', error);
             // Refresh the page if there's an error
-            mainWindow.reload();
+            window.location.reload();
         });
+        
     });
-    
 
 
 
     mainWindow.webContents.setWindowOpenHandler(({ url }) => {
-        if (url.includes('https://www.mobi-cashier.com/invoice') || url.includes('https://www.mobi-cashier.com/period-report-htm')) {
+        if (url.includes('http://127.0.0.1:8000/invoice') || url.includes('http://127.0.0.1:8000/period-report-html')) {
             const invoiceWindow = new BrowserWindow({
                 show: false,
                 webPreferences: {
@@ -230,6 +218,17 @@ async function createWindow() {
                 location.reload();
             } else if (event.key === 'F11') {
                 require('electron').ipcRenderer.send('toggle-fullscreen');
+            } else if (event.key === 'Enter') {
+                const currentElement = document.activeElement;
+    
+                // Check if focused on the 'name' input and focus the 'password' input
+                if (currentElement && currentElement.id === 'name') {
+                    $('#password').focus();
+                } 
+                else if (currentElement && currentElement.id === 'password') {
+                    $('.login').click(); 
+                } 
+              
             }
         });
     

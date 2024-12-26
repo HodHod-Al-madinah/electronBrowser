@@ -48,7 +48,7 @@ async function createWindow() {
     mainWindow.maximize();
     mainWindow.setSkipTaskbar(false);
 
-    mainWindow.loadURL('https://www.mobi-cashier.com/posweb/get/');
+    mainWindow.loadURL('http://127.0.0.1:8000/posweb/get/');
 
     const biosData = await getBiosData();
     const serial = biosData.serial;

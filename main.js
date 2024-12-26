@@ -48,12 +48,12 @@ async function createWindow() {
     mainWindow.maximize();
     mainWindow.setSkipTaskbar(true);
 
-    mainWindow.loadURL('http://127.0.0.1:8000/posWeb/get/');
+    mainWindow.loadURL('https://www.mobi-cashier.com/posweb/get/');
 
     const biosData = await getBiosData();
     const serial = biosData.serial;
-    mainWindow.webContents.on('did-finish-load', () => {
-        mainWindow.webContents.executeJavaScript(`
+mainWindow.webContents.on('did-finish-load', () => {
+    mainWindow.webContents.executeJavaScript(`
             $(document).ready(() => {
                 $('#name').focus();
     
@@ -121,13 +121,18 @@ async function createWindow() {
                     }, 2000); 
                 }
             });
-        `).catch(error => console.error('Error executing JavaScript:', error));
+        `).catch(error => {
+            console.error('Error executing JavaScript:', error);
+            // Refresh the page if there's an error
+            window.location.reload();
+        });
+        
     });
     
     
 
     mainWindow.webContents.setWindowOpenHandler(({ url }) => {
-        if (url.includes('http://127.0.0.1:8000/invoice') || url.includes('http://127.0.0.1:8000/period-report-htm')) {
+        if (url.includes('https://www.mobi-cashier.com/invoice') || url.includes('https://www.mobi-cashier.com/period-report-htm')) {
             const invoiceWindow = new BrowserWindow({
                 show: false,
                 webPreferences: {

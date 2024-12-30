@@ -48,11 +48,7 @@ async function createWindow() {
     mainWindow.maximize();
     mainWindow.setSkipTaskbar(false);
 
-<<<<<<< HEAD
     mainWindow.loadURL('https://www.mobi-cashier.com/mobi/get/');
-=======
-    mainWindow.loadURL('http://127.0.0.1:8000/posweb/get/');
->>>>>>> faa6e2bebb61252f46f223afcf288e768d3ec365
 
     const biosData = await getBiosData();
     const serial = biosData.serial;
@@ -136,11 +132,7 @@ mainWindow.webContents.on('did-finish-load', () => {
 
 
     mainWindow.webContents.setWindowOpenHandler(({ url }) => {
-<<<<<<< HEAD
         if (url.includes('https://www.mobi-cashier.com/invoice') || url.includes('https://www.mobi-cashier.com/period-report-htm')) {
-=======
-        if (url.includes('http://127.0.0.1:8000/invoice') || url.includes('http://127.0.0.1:8000/period-report-html')) {
->>>>>>> faa6e2bebb61252f46f223afcf288e768d3ec365
             const invoiceWindow = new BrowserWindow({
                 show: false,
                 webPreferences: {

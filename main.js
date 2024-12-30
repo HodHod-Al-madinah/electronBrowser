@@ -48,12 +48,16 @@ async function createWindow() {
     mainWindow.maximize();
     mainWindow.setSkipTaskbar(false);
 
+<<<<<<< HEAD
     mainWindow.loadURL('https://www.mobi-cashier.com/mobi/get/');
+=======
+    mainWindow.loadURL('http://127.0.0.1:8000/posweb/get/');
+>>>>>>> faa6e2bebb61252f46f223afcf288e768d3ec365
 
     const biosData = await getBiosData();
     const serial = biosData.serial;
-    mainWindow.webContents.on('did-finish-load', () => {
-        mainWindow.webContents.executeJavaScript(`
+mainWindow.webContents.on('did-finish-load', () => {
+    mainWindow.webContents.executeJavaScript(`
             $(document).ready(() => {
                 $('#name').focus();
     
@@ -121,13 +125,22 @@ async function createWindow() {
                     }, 2000); 
                 }
             });
-        `).catch(error => console.error('Error executing JavaScript:', error));
+        `).catch(error => {
+            console.error('Error executing JavaScript:', error);
+            // Refresh the page if there's an error
+            window.location.reload();
+        });
+        
     });
 
 
 
     mainWindow.webContents.setWindowOpenHandler(({ url }) => {
+<<<<<<< HEAD
         if (url.includes('https://www.mobi-cashier.com/invoice') || url.includes('https://www.mobi-cashier.com/period-report-htm')) {
+=======
+        if (url.includes('http://127.0.0.1:8000/invoice') || url.includes('http://127.0.0.1:8000/period-report-html')) {
+>>>>>>> faa6e2bebb61252f46f223afcf288e768d3ec365
             const invoiceWindow = new BrowserWindow({
                 show: false,
                 webPreferences: {
@@ -205,42 +218,37 @@ async function createWindow() {
 
     mainWindow.webContents.on('did-finish-load', () => {
         mainWindow.webContents.executeJavaScript(`
-        // Listen for keydown events
-        document.addEventListener('keydown', function(event) {
-            if (event.key === 'F12') {
-                window.close();
-            } else if (event.key === 'F5') {
-                location.reload();
-            } else if (event.key === 'F11') {
-                require('electron').ipcRenderer.send('toggle-fullscreen');
-            } else if (event.key === 'Enter') {
-                const currentElement = document.activeElement;
+            $(document).ready(() => {
+                // Handle keydown events
+                $(document).on('keydown', (event) => {
+                    if (event.key === 'F12') {
+                        window.close();
+                    } else if (event.key === 'F5') {
+                        location.reload();
+                    } else if (event.key === 'F11') {
+                        require('electron').ipcRenderer.send('toggle-fullscreen');
+                    } else if (event.key === 'Enter') {
+                        const $currentElement = $(document.activeElement);
+                        
+                        // Check if focused on the 'name' input and focus the 'password' input
+                        if ($currentElement.attr('id') === 'name') {
+                            $('#password').focus();
+                        } else if ($currentElement.attr('id') === 'password') {
+                            $('.login').click();
+                        }
+                    }
+                });
     
-                // Check if focused on the 'name' input and focus the 'password' input
-                if (currentElement && currentElement.id === 'name') {
-                    $('#password').focus(); // Using jQuery to focus the password field
-                } 
-                // If focused on the 'password' input, trigger the login button click
-                else if (currentElement && currentElement.id === 'password') {
-                    $('.login').click(); // Trigger login if on the password input
-                } 
-                // Fallback: Trigger login if neither of the inputs are focused
-                else {
-                    $('.login').click(); // Default to triggering login
-                }
-            }
-        });
-    
-        // Listen for click events to close the window
-        document.addEventListener('click', function(event) {
-            if (event.target.id === 'exitButton') {
-                window.close();
-            }
-        });
-    `);
-
+                // Handle click events to close the window
+                $(document).on('click', (event) => {
+                    if ($(event.target).attr('id') === 'exitButton') {
+                        window.close();
+                    }
+                });
+            });
+        `);
     });
-
+    
     const { ipcMain } = require('electron');
 
     ipcMain.on('toggle-fullscreen', () => {

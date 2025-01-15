@@ -4,7 +4,8 @@
   "main": "main.js",
   "scripts": {
     "start": "electron .",
-    "build": "electron-builder"
+    "build": "electron-packager . --platform=linux --arch=x64"
+    
   },
   "keywords": [],
   "author": "",
@@ -13,6 +14,7 @@
   "devDependencies": {
     "electron": "^32.2.0",
     "electron-builder": "^23.6.0",
+    "electron-packager": "^17.1.2",
     "electron-reload": "^2.0.0-alpha.1"
   },
   "dependencies": {
@@ -30,6 +32,13 @@
     "win": {
       "target": "nsis",
       "icon": "mobi_logo.ico"
+    },
+    "linux": {
+      "target": [
+        "AppImage",
+        "deb"
+      ],
+      "icon": "path-to-icon-folder"
     }
   }
 }

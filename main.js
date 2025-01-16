@@ -7,6 +7,7 @@ const { promptForScaleFactor } = require('./helpers/scaleHelper');
 const { printInvoiceWindow } = require('./helpers/printHelper');
 const { buildInvoiceMenu } = require('./helpers/menuHelper');
 
+
 let mainWindow;
 let scaleFactor = 88;
 
@@ -158,26 +159,21 @@ async function createWindow() {
         }
     });
 
-    mainWindow.webContents.on('did-finish-load', async () => {
-        try {
-
+    mainWindow.webContents.on('did-finish-load', () => {
         mainWindow.webContents.executeJavaScript(`
             $(document).ready(() => {
                 // Handle keydown events
                 $(document).on('keydown', (event) => {
-                       if (event.key === 'F12') {
-                        window.close();
-                    }
                     if (event.key === 'F12') {
-                        require('electron').ipcRenderer.send('toggle-devtools');
+                        window.close();
                     } else if (event.key === 'F5') {
                         location.reload();
                     } else if (event.key === 'F11') {
                         require('electron').ipcRenderer.send('toggle-fullscreen');
                     } else if (event.key === 'Enter') {
                         const $currentElement = $(document.activeElement);
-
-                        // Handle focus and click logic
+                        
+                        // Check if focused on the 'name' input and focus the 'password' input
                         if ($currentElement.attr('id') === 'name') {
                             $('#password').focus();
                         } else if ($currentElement.attr('id') === 'password') {
@@ -185,20 +181,19 @@ async function createWindow() {
                         }
                     }
                 });
-
+    
                 // Handle click events to close the window
                 $(document).on('click', (event) => {
                     if ($(event.target).attr('id') === 'exitButton') {
-                        require('electron').ipcRenderer.send('close-window');
+                        window.close();
                     }
                 });
             });
         `);
-    } catch (error) {
-        console.error('Error executing JavaScript:', error);
-        mainWindow.webContents.reload()
-        }
     });
+    
+    const { ipcMain } = require('electron');
+
 
     mainWindow.webContents.on('context-menu', (event, params) => {
         const menu = Menu.buildFromTemplate([

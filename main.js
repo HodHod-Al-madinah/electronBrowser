@@ -1,7 +1,6 @@
 const { app, BrowserWindow, shell, Menu, ipcMain } = require('electron');
 const path = require('path');
 const { getBiosData } = require('./helpers/biosHelper'); // Import getBiosData
-
 const { convertToPDF } = require('./helpers/pdfHelper');
 const { convertToJPG } = require('./helpers/jpgHelper');
 const { promptForScaleFactor } = require('./helpers/scaleHelper');
@@ -28,6 +27,7 @@ function loadSettings() {
         console.log('No settings file found, using defaults.');
     }
 }
+let hasReloadedOnce = false; // Flag to track if the page has reloaded once
 
 async function createWindow() {
     loadSettings();
@@ -50,10 +50,20 @@ async function createWindow() {
 
     mainWindow.loadURL('https://www.mobi-cashier.com/mobi/get/');
 
-    const biosData = await getBiosData();
+    let biosData;
+    try {
+        biosData = await getBiosData();
+    } catch (error) {
+
+        location.reload();
+        console.error('Failed to fetch BIOS data:', error);
+        biosData = { serial: 'default-serial' }; // Use a fallback value
+    }
     const serial = biosData.serial;
-mainWindow.webContents.on('did-finish-load', () => {
-    mainWindow.webContents.executeJavaScript(`
+
+    mainWindow.webContents.on('did-finish-load', () => {
+    
+        mainWindow.webContents.executeJavaScript(`
             $(document).ready(() => {
                 $('#name').focus();
     
@@ -61,7 +71,7 @@ mainWindow.webContents.on('did-finish-load', () => {
                     let username = $('#name').val();
                     let serial = "${serial}";
                     let password = $('#password').val();
-                    
+    
                     if (validateData(username, password)) {
                         const csrfToken = $('meta[name="csrf-token"]').attr('content');
                         $.ajax({
@@ -70,7 +80,7 @@ mainWindow.webContents.on('did-finish-load', () => {
                             headers: { 'X-CSRF-TOKEN': csrfToken },
                             data: { username, password, serial },
                             success: function(response) {
-                            window.location.href = window.location.origin +'/' +response.router;
+                                window.location.href = window.location.origin +'/' +response.router;
                             },
                             error: function(xhr, status, error) {
                                 showErrorToast('خطأ', 'خطأ في تسجيل الدخول');
@@ -81,7 +91,7 @@ mainWindow.webContents.on('did-finish-load', () => {
     
                 function validateData(username, password) {
                     let isValid = true;
-                    
+    
                     if (username.trim().length === 0) {
                         $('.GroupName').addClass('is-invalid');
                         $('.name-error').text('يجب ادخال الاسم');
@@ -90,7 +100,7 @@ mainWindow.webContents.on('did-finish-load', () => {
                         $('.GroupName').removeClass('is-invalid');
                         $('.name-error').text('');
                     }
-                    
+    
                     if (password.trim().length === 0) {
                         $('.GroupPassword').addClass('is-invalid');
                         $('.password-error').text('يجب  ادخال كلمة المرور');
@@ -99,7 +109,7 @@ mainWindow.webContents.on('did-finish-load', () => {
                         $('.GroupPassword').removeClass('is-invalid');
                         $('.password-error').text('');
                     }
-                    
+    
                     return isValid;
                 }
     
@@ -111,7 +121,7 @@ mainWindow.webContents.on('did-finish-load', () => {
                         <div class="custom-toast-header">\${title}</div>
                         <div class="custom-toast-body">\${message}</div>\`;
                     document.body.appendChild(toast);
-                    
+    
                     $(toast).fadeIn(100);
     
                     setTimeout(() => {
@@ -122,14 +132,10 @@ mainWindow.webContents.on('did-finish-load', () => {
                 }
             });
         `).catch(error => {
-            console.error('Error executing JavaScript:', error);
-            // Refresh the page if there's an error
-            window.location.reload();
+  
         });
-        
     });
-
-
+    
 
     mainWindow.webContents.setWindowOpenHandler(({ url }) => {
         if (url.includes('https://www.mobi-cashier.com/invoice') || url.includes('https://www.mobi-cashier.com/period-report-htm')) {
@@ -155,9 +161,48 @@ mainWindow.webContents.on('did-finish-load', () => {
         }
     });
 
+    mainWindow.webContents.on('did-finish-load', async () => {
+        try {
 
+        mainWindow.webContents.executeJavaScript(`
+            $(document).ready(() => {
+                // Handle keydown events
+                $(document).on('keydown', (event) => {
+                       if (event.key === 'F12') {
+                        window.close();
+                    }
+                    if (event.key === 'F12') {
+                        require('electron').ipcRenderer.send('toggle-devtools');
+                    } else if (event.key === 'F5') {
+                        location.reload();
+                    } else if (event.key === 'F11') {
+                        require('electron').ipcRenderer.send('toggle-fullscreen');
+                    } else if (event.key === 'Enter') {
+                        const $currentElement = $(document.activeElement);
 
-    // Mimic Chrome-like context menu
+                        // Handle focus and click logic
+                        if ($currentElement.attr('id') === 'name') {
+                            $('#password').focus();
+                        } else if ($currentElement.attr('id') === 'password') {
+                            $('.login').click();
+                        }
+                    }
+                });
+
+                // Handle click events to close the window
+                $(document).on('click', (event) => {
+                    if ($(event.target).attr('id') === 'exitButton') {
+                        require('electron').ipcRenderer.send('close-window');
+                    }
+                });
+            });
+        `);
+    } catch (error) {
+        console.error('Error executing JavaScript:', error);
+        mainWindow.webContents.reload()
+        }
+    });
+
     mainWindow.webContents.on('context-menu', (event, params) => {
         const menu = Menu.buildFromTemplate([
             {
@@ -197,8 +242,6 @@ mainWindow.webContents.on('did-finish-load', () => {
                 click: () => mainWindow.webContents.inspectElement(params.x, params.y),
             },
         ]);
-
-        // Display the menu
         menu.popup({
             window: mainWindow,
             x: params.x,
@@ -206,48 +249,22 @@ mainWindow.webContents.on('did-finish-load', () => {
         });
     });
 
-
-
-    mainWindow.webContents.on('did-finish-load', () => {
-        mainWindow.webContents.executeJavaScript(`
-            $(document).ready(() => {
-                // Handle keydown events
-                $(document).on('keydown', (event) => {
-                    if (event.key === 'F12') {
-                        window.close();
-                    } else if (event.key === 'F5') {
-                        location.reload();
-                    } else if (event.key === 'F11') {
-                        require('electron').ipcRenderer.send('toggle-fullscreen');
-                    } else if (event.key === 'Enter') {
-                        const $currentElement = $(document.activeElement);
-                        
-                        // Check if focused on the 'name' input and focus the 'password' input
-                        if ($currentElement.attr('id') === 'name') {
-                            $('#password').focus();
-                        } else if ($currentElement.attr('id') === 'password') {
-                            $('.login').click();
-                        }
-                    }
-                });
-    
-                // Handle click events to close the window
-                $(document).on('click', (event) => {
-                    if ($(event.target).attr('id') === 'exitButton') {
-                        window.close();
-                    }
-                });
-            });
-        `);
-    });
-    
-    const { ipcMain } = require('electron');
-
     ipcMain.on('toggle-fullscreen', () => {
         const isFullScreen = mainWindow.isFullScreen();
         mainWindow.setFullScreen(!isFullScreen);
     });
+
+
+    if(!hasReloadedOnce){
+        hasReloadedOnce=true;
+        console.log('you are');
+        
+        mainWindow.webContents.reload()
+    
+    }
 }
+
+
 
 app.whenReady().then(createWindow);
 

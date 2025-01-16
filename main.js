@@ -1,6 +1,6 @@
 const { app, BrowserWindow, shell, Menu, ipcMain } = require('electron');
 const path = require('path');
-const { getBiosData } = require('./helpers/biosHelper'); // Import getBiosData
+const { getBiosData } = require('./helpers/biosHelper'); 
 const { convertToPDF } = require('./helpers/pdfHelper');
 const { convertToJPG } = require('./helpers/jpgHelper');
 const { promptForScaleFactor } = require('./helpers/scaleHelper');
@@ -8,28 +8,12 @@ const { printInvoiceWindow } = require('./helpers/printHelper');
 const { buildInvoiceMenu } = require('./helpers/menuHelper');
 
 let mainWindow;
-
-let settingsFile = path.join(__dirname, 'settings.json');
 let scaleFactor = 88;
 
 process.env.LANG = 'en-US';
 app.commandLine.appendSwitch('lang', 'en-US');
 
-function loadSettings() {
-    const fs = require('fs');
-    try {
-        const data = fs.readFileSync(settingsFile);
-        const settings = JSON.parse(data);
-        if (settings.scaleFactor) {
-            scaleFactor = settings.scaleFactor;
-        }
-    } catch (error) {
-        console.log('No settings file found, using defaults.');
-    }
-}
-
 async function createWindow() {
-    loadSettings();
     mainWindow = new BrowserWindow({
         fullscreen: true,
         width: 1280,
@@ -54,7 +38,7 @@ async function createWindow() {
         biosData = await getBiosData();
     } catch (error) {
         console.error('Failed to fetch BIOS data:', error);
-        biosData = { serial: 'default-serial' }; // Use a fallback value
+        biosData = { serial: 'default-serial' };
     }
     const serial = biosData.serial;
 
@@ -65,9 +49,8 @@ async function createWindow() {
                     $('#name').focus();
                     $(document).off('click', '.login').on('click', '.login', (event) => {
                         let username = $('#name').val();
-                        let serial = "${serial}";
                         let password = $('#password').val();
-                        
+
                         if (validateData(username, password)) {
                             const csrfToken = $('meta[name="csrf-token"]').attr('content');
                             $.ajax({
@@ -84,7 +67,7 @@ async function createWindow() {
                             });
                         }
                     });
-    
+
                     function validateData(username, password) {
                         let isValid = true;
                         if (username.trim().length === 0) {
@@ -105,7 +88,7 @@ async function createWindow() {
                         }
                         return isValid;
                     }
-    
+
                     function showErrorToast(title, message) { 
                         let toast = document.createElement('div');
                         toast.className = 'custom-toast custom-error';
@@ -116,7 +99,7 @@ async function createWindow() {
                         document.body.appendChild(toast);
                         
                         $(toast).fadeIn(100);
-    
+
                         setTimeout(() => {
                             $(toast).fadeOut(200, function() {
                                 $(this).remove();
@@ -127,6 +110,7 @@ async function createWindow() {
             `);
         } catch (error) {
             console.error('Error executing JavaScript:', error);
+            location.reload();
         }
     });
 
@@ -154,42 +138,47 @@ async function createWindow() {
         }
     });
 
-    mainWindow.webContents.on('did-finish-load', () => {
-        mainWindow.webContents.executeJavaScript(`
-            $(document).ready(() => {
-                // Handle keydown events
-                $(document).on('keydown', (event) => {
-                       if (event.key === 'F12') {
-                        window.close();
-                    }
-                    if (event.key === 'F12') {
-                        require('electron').ipcRenderer.send('toggle-devtools');
-                    } else if (event.key === 'F5') {
-                        location.reload();
-                    } else if (event.key === 'F11') {
-                        require('electron').ipcRenderer.send('toggle-fullscreen');
-                    } else if (event.key === 'Enter') {
-                        const $currentElement = $(document.activeElement);
-    
-                        // Handle focus and click logic
-                        if ($currentElement.attr('id') === 'name') {
-                            $('#password').focus();
-                        } else if ($currentElement.attr('id') === 'password') {
-                            $('.login').click();
+    mainWindow.webContents.on('did-finish-load', async () => {
+        try {
+            mainWindow.webContents.executeJavaScript(`
+                $(document).ready(() => {
+                    // Handle keydown events
+                    $(document).on('keydown', (event) => {
+                        if (event.key === 'F12') {
+                            window.close();
                         }
-                    }
+                        if (event.key === 'F12') {
+                            require('electron').ipcRenderer.send('toggle-devtools');
+                        } else if (event.key === 'F5') {
+                            location.reload();
+                        } else if (event.key === 'F11') {
+                            require('electron').ipcRenderer.send('toggle-fullscreen');
+                        } else if (event.key === 'Enter') {
+                            const $currentElement = $(document.activeElement);
+
+                            // Handle focus and click logic
+                            if ($currentElement.attr('id') === 'name') {
+                                $('#password').focus();
+                            } else if ($currentElement.attr('id') === 'password') {
+                                $('.login').click();
+                            }
+                        }
+                    });
+
+                    // Handle click events to close the window
+                    $(document).on('click', (event) => {
+                        if ($(event.target).attr('id') === 'exitButton') {
+                            require('electron').ipcRenderer.send('close-window');
+                        }
+                    });
                 });
-    
-                // Handle click events to close the window
-                $(document).on('click', (event) => {
-                    if ($(event.target).attr('id') === 'exitButton') {
-                        require('electron').ipcRenderer.send('close-window');
-                    }
-                });
-            });
-        `);
+            `);
+        } catch (error) {
+            console.error('Error executing JavaScript:', error);
+            location.reload();
+        }
     });
-    
+
     mainWindow.webContents.on('context-menu', (event, params) => {
         const menu = Menu.buildFromTemplate([
             {

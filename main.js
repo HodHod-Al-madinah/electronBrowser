@@ -8,8 +8,6 @@ const { printInvoiceWindow } = require('./helpers/printHelper');
 const { buildInvoiceMenu } = require('./helpers/menuHelper');
 
 let mainWindow;
-
-let settingsFile = path.join(__dirname, 'settings.json');
 let scaleFactor = 88;
 
 process.env.LANG = 'en-US';
@@ -30,7 +28,6 @@ function loadSettings() {
 let hasReloadedOnce = false; // Flag to track if the page has reloaded once
 
 async function createWindow() {
-    loadSettings();
     mainWindow = new BrowserWindow({
         fullscreen: true,
         width: 1280,

@@ -9,7 +9,7 @@ const { buildInvoiceMenu } = require('./helpers/menuHelper');
 
 
 let mainWindow;
-let scaleFactor = 88;
+let scaleFactor = 100;
 
 process.env.LANG = 'en-US';
 app.commandLine.appendSwitch('lang', 'en-US');
@@ -29,6 +29,7 @@ function loadSettings() {
 let hasReloadedOnce = false; // Flag to track if the page has reloaded once
 
 async function createWindow() {
+    loadSettings()
     mainWindow = new BrowserWindow({
         fullscreen: true,
         width: 1280,
@@ -46,7 +47,7 @@ async function createWindow() {
     mainWindow.maximize();
     mainWindow.setSkipTaskbar(false);
 
-    mainWindow.loadURL('http://127.0.0.1:8000/posweb/get/');
+    mainWindow.loadURL('https://www.mobi-cashier.com/mobi/get/');
 
     let biosData;
     try {
@@ -136,7 +137,7 @@ async function createWindow() {
     
 
     mainWindow.webContents.setWindowOpenHandler(({ url }) => {
-        if (url.includes('http://127.0.0.1:8000/invoice') || url.includes('http://127.0.0.1:8000/period-report-htm')) {
+        if (url.includes('https://www.mobi-cashier.com/invoice') || url.includes('https://www.mobi-cashier.com/period-report-htm')) {
             const invoiceWindow = new BrowserWindow({
                 show: false,
                 webPreferences: {

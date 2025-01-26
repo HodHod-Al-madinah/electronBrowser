@@ -32,4 +32,12 @@ npm-debug.log*
 core
 *.core
 *.pak
-*.mobi-cashier-linux-x64/mobi-cashier
+
+*.exe
+*.asar
+*.pak
+*.dmg
+*.zip
+*.tar.gz
+*.iso
+mobi-cashier-linux-x64/*

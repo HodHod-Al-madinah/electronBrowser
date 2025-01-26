@@ -16,3 +16,5 @@ Thumbs.db
 # Logs and other temp files
 npm-debug.log*
 
+resources/
+*.app.asar

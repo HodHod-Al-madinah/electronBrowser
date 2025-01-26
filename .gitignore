@@ -7,19 +7,8 @@ dist/
 build/
 release-builds/
 node_modules/
-
-# Ignore common archive files
+*.exe
 *.rar
-*.zip
-*.tar.gz
-*.tar.bz2
-
-# Ignore Linux app builds
-*.AppImage
-*.deb
-*.rpm
-*.snap
-
 # OS-specific files
 .DS_Store
 Thumbs.db
@@ -27,10 +16,3 @@ Thumbs.db
 # Logs and other temp files
 npm-debug.log*
 
-# Resources directory
-resources/
-
-# Ignore Mac-specific files (in case you add macOS builds)
-*.dmg
-*.pkg
-*.app

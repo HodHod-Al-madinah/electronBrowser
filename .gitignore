@@ -1,18 +1,13 @@
-# Ignore all executable files and app.asar
+# Exclude all executables
 *.exe
-*.asar
+*.app
+*.out
 
-# Ignore build and dist directories
+# Exclude build directories
 dist/
 build/
 release-builds/
 node_modules/
-*.exe
-*.rar
-# OS-specific files
-.DS_Store
-Thumbs.db
 
-# Logs and other temp files
-npm-debug.log*
-
+# Exclude large files
+mobi-cashier-linux-x64/

@@ -32,3 +32,4 @@ npm-debug.log*
 core
 *.core
 *.pak
+*.mobi-cashier-linux-x64/mobi-cashier

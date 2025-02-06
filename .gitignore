@@ -7,24 +7,30 @@
 *.app
 *.asar
 
-# Ignore Linux-specific directories
+# Ignore Linux-specific compiled files
 *.so
 *.a
 *.o
 *.debug
 
-# Ignore build and dist directories
+# Ignore build, distribution, and dependency directories
 dist/
 build/
 release-builds/
 node_modules/
+
+# Archive and compressed files
 *.rar
+*.zip
+*.tar.gz
+*.iso
+*.dmg
 
 # OS-specific files
 .DS_Store
 Thumbs.db
 
-# Logs and other temp files
+# Logs and temporary files
 npm-debug.log*
 *.log
 
@@ -33,11 +39,5 @@ core
 *.core
 *.pak
 
-*.exe
-*.asar
-*.pak
-*.dmg
-*.zip
-*.tar.gz
-*.iso
-mobi-cashier-linux-x64/*
+# Ignore specific directory
+mobi-cashier-linux-x64/

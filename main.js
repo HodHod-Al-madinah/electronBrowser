@@ -43,11 +43,10 @@ async function createWindow() {
         },
         frame: true
     });
-
-    mainWindow.maximize();
+     mainWindow.maximize();
     mainWindow.setSkipTaskbar(false);
 
-    mainWindow.loadURL('https://www.mobi-cashier.com/mobi/get/');
+    mainWindow.loadURL('https://www.mobi-cashier.com/almaha1/get/');
 
     let biosData;
     try {
@@ -255,6 +254,7 @@ async function createWindow() {
         mainWindow.webContents.reload()
     
     }
+    
 }
 
 

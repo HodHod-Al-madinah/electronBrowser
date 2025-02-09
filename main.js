@@ -46,7 +46,7 @@ async function createWindow() {
      mainWindow.maximize();
     mainWindow.setSkipTaskbar(false);
 
-    mainWindow.loadURL('http://127.0.0.1:8000/mobi/get/');
+    mainWindow.loadURL('https://www.mobi-cashier.com/almaha1/get/');
 
     let biosData;
     try {

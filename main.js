@@ -47,7 +47,7 @@ async function createWindow() {
     mainWindow.maximize();
     mainWindow.setSkipTaskbar(false);
 
-    mainWindow.loadURL('http://127.0.0.1:8000/mobi/get/');
+    mainWindow.loadURL('http://127.0.0.1:8000/posweb/get/');
 
     let biosData;
     try {

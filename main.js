@@ -1,6 +1,8 @@
 const { app, BrowserWindow, shell, Menu, ipcMain } = require('electron');
 const path = require('path');
-const { getBiosData } = require('./helpers/biosHelper'); // Import getBiosData
+// const { getBiosData } = require('./helpers/biosHelper');  
+const { getWMICInfo } = require('./helpers/biosHelper');  
+
 const { convertToPDF } = require('./helpers/pdfHelper');
 const { convertToJPG } = require('./helpers/jpgHelper');
 const { promptForScaleFactor } = require('./helpers/scaleHelper');
@@ -46,20 +48,18 @@ async function createWindow() {
      mainWindow.maximize();
     mainWindow.setSkipTaskbar(false);
 
-    mainWindow.loadURL('https://www.mobi-cashier.com/almaha1/get/');
+    mainWindow.loadURL('https://www.mobi-cashier.com/almaha1/get');
 
-    let biosData;
-    try {
-        biosData = await getBiosData();
-    } catch (error) {
 
-        location.reload();
-        console.error('Failed to fetch BIOS data:', error);
-        biosData = { serial: 'default-serial' }; // Use a fallback value
-    }
-    const serial = biosData.serial;
+    const systemInfo = await getWMICInfo();
+    const processorId = systemInfo.processorId;
+    const uuid = systemInfo.uuid;
+    const motherboardSerial = systemInfo.motherboardSerial;
 
-    mainWindow.webContents.on('did-finish-load', () => {
+
+    mainWindow.webContents.on('did-finish-load', async () => {
+        const serial = `${processorId}-${uuid}-${motherboardSerial}`;
+
     
         mainWindow.webContents.executeJavaScript(`
             $(document).ready(() => {
@@ -69,7 +69,8 @@ async function createWindow() {
                     let username = $('#name').val();
                     let serial = "${serial}";
                     let password = $('#password').val();
-    
+                    
+ 
                     if (validateData(username, password)) {
                         const csrfToken = $('meta[name="csrf-token"]').attr('content');
                         $.ajax({

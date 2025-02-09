@@ -43,7 +43,8 @@ async function createWindow() {
         },
         frame: true
     });
-     mainWindow.maximize();
+
+    mainWindow.maximize();
     mainWindow.setSkipTaskbar(false);
 
     mainWindow.loadURL('http://127.0.0.1:8000/mobi/get/');
@@ -55,9 +56,10 @@ async function createWindow() {
 
         location.reload();
         console.error('Failed to fetch BIOS data:', error);
-        biosData = { serial: 'default-serial' }; // Use a fallback value
+        biosData = { serial: 'default-serial' };  
     }
     const serial = biosData.serial;
+
 
     mainWindow.webContents.on('did-finish-load', () => {
     
@@ -136,7 +138,7 @@ async function createWindow() {
     
 
     mainWindow.webContents.setWindowOpenHandler(({ url }) => {
-        if (url.includes('http://127.0.0.1:8000/mobi/invoice') || url.includes('http://127.0.0.1:8000/mobi/period-report-htm')) {
+        if (url.includes('http://127.0.0.1:8000/invoice') || url.includes('http://127.0.0.1:8000/period-report-htm')) {
             const invoiceWindow = new BrowserWindow({
                 show: false,
                 webPreferences: {
@@ -254,7 +256,6 @@ async function createWindow() {
         mainWindow.webContents.reload()
     
     }
-    
 }
 
 

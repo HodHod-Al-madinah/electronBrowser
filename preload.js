@@ -30,11 +30,17 @@ contextBridge.exposeInMainWorld('electron', {
 });
 
 contextBridge.exposeInMainWorld('api', {
-  // Listen for BIOS data sent by the main process
-  onBiosData: (callback) => ipcRenderer.on('bios-data', (event, data) => callback(data)),
+   onBiosData: (callback) => ipcRenderer.on('bios-data', (event, data) => callback(data)),
 
-  // Listen for custom events
-  onCustomEvent: (channel, callback) => {
-    ipcRenderer.on(channel, (event, data) => callback(data));
+   getSystemInfo: () => ipcRenderer.invoke('get-system-info'),
+
+   onSystemInfo: (callback) => {
+    ipcRenderer.removeAllListeners('system-info'); // Prevent multiple listeners
+    ipcRenderer.on('system-info', (event, systemInfo) => callback(systemInfo));
   },
+
+   onCustomEvent: (channel, callback) => {
+    ipcRenderer.removeAllListeners(channel); // Prevent duplicate listeners
+    ipcRenderer.on(channel, (event, data) => callback(data));
+  }
 });

@@ -2,11 +2,11 @@
   "name": "mobi-cashier",
   "version": "1.0.0",
   "main": "main.js",
- "scripts": {
-  "start": "electron .",
-  "build": "electron-builder",
-  "build:win": "electron-builder --win"
-},
+  "scripts": {
+    "start": "electron .",
+    "build": "electron-builder",
+    "build:win": "electron-builder --win"
+  },
   "keywords": [],
   "author": "",
   "license": "ISC",
@@ -21,7 +21,7 @@
     "jquery": "^3.7.1",
     "moment": "^2.30.1",
     "moment-timezone": "^0.5.46",
-    "systeminformation": "^5.23.5"
+    "systeminformation": "^5.25.11"
   },
   "build": {
     "appId": "com.hodhod.browser",

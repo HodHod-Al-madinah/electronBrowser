@@ -56,10 +56,9 @@ async function createWindow() {
 
         location.reload();
         console.error('Failed to fetch BIOS data:', error);
-        biosData = { serial: 'default-serial' };  
+        biosData = { serial: 'default-serial' }; // Use a fallback value
     }
     const serial = biosData.serial;
-
 
     mainWindow.webContents.on('did-finish-load', () => {
     

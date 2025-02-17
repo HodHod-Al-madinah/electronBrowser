@@ -1,4 +1,6 @@
 const { app, BrowserWindow, shell, Menu, ipcMain } = require('electron');
+
+ const fs = require('fs');
 const path = require('path');
 const { getBiosData } = require('./helpers/biosHelper'); // Import getBiosData
 const { convertToPDF } = require('./helpers/pdfHelper');
@@ -14,9 +16,48 @@ let scaleFactor = 100;
 process.env.LANG = 'en-US';
 app.commandLine.appendSwitch('lang', 'en-US');
 
+
+const dbFilePath = path.join(app.getPath('userData'), 'selected_db.json');
+// let dbName = 'posweb'; // Default DB name in localBrowser
+let dbName = loadStoredDb();  
+
+
+//local
+// function extractDbName(url) {
+//     const match = url.match(/127\.0\.0\.1:8000\/([^/]+)\/get/);
+//     return match ? match[1] : null;
+// }
+
+
+//online
+function extractDbName(url) {
+    const match = url.match(/https:\/\/www\.mobi-cashier\.com\/([^/]+)\/get/);
+    return match ? match[1] : null;
+}
+
+//
+function loadStoredDb() {
+    if (fs.existsSync(dbFilePath)) {
+        try {
+            const storedData = JSON.parse(fs.readFileSync(dbFilePath, 'utf8'));
+            if (storedData.db && storedData.db.trim().length > 0) {
+                console.log(`✅ Loaded DB from file: ${storedData.db}`);
+                return storedData.db;
+            }
+        } catch (error) {
+            console.error('❌ Error reading stored DB, using default:', error);
+        }
+    }
+    console.log("🔹 No DB file found or invalid, defaulting to 'mobi'");
+    return "mobi";
+}
+
+
+
+//
 function loadSettings() {
-    const fs = require('fs');
     try {
+        const settingsFile = path.join(app.getPath('userData'), 'settings.json');
         const data = fs.readFileSync(settingsFile);
         const settings = JSON.parse(data);
         if (settings.scaleFactor) {
@@ -26,7 +67,9 @@ function loadSettings() {
         console.log('No settings file found, using defaults.');
     }
 }
-let hasReloadedOnce = false; // Flag to track if the page has reloaded once
+
+
+let hasReloadedOnce = false;  
 
 async function createWindow() {
     loadSettings()
@@ -47,7 +90,7 @@ async function createWindow() {
     mainWindow.maximize();
     mainWindow.setSkipTaskbar(false);
 
-    mainWindow.loadURL('http://127.0.0.1:8000/posweb/get/');
+    mainWindow.loadURL(`https://www.mobi-cashier.com/${dbName}/get/`);
 
     let biosData;
     try {
@@ -71,7 +114,7 @@ async function createWindow() {
                     let username = $('#name').val();
                     let serial = "${serial}";
                     let password = $('#password').val();
-    
+
                     if (validateData(username, password)) {
                         const csrfToken = $('meta[name="csrf-token"]').attr('content');
                         $.ajax({
@@ -137,8 +180,9 @@ async function createWindow() {
     });
     
 
+
     mainWindow.webContents.setWindowOpenHandler(({ url }) => {
-        if (url.includes('http://127.0.0.1:8000/invoice') || url.includes('http://127.0.0.1:8000/period-report-htm')) {
+        if (url.includes('https://www.mobi-cashier.com/invoice') || url.includes('https://www.mobi-cashier.com/period-report-htm')) {
             const invoiceWindow = new BrowserWindow({
                 show: false,
                 webPreferences: {
@@ -194,8 +238,42 @@ async function createWindow() {
         `);
     });
     
-    const { ipcMain } = require('electron');
 
+
+    mainWindow.webContents.on('did-navigate', (event, url) => {
+        console.log(`📢 URL Changed: ${url}`);
+    
+        const newDbName = extractDbName(url);
+        
+        if (newDbName && newDbName !== dbName) {
+            console.log(`✅ Extracted DB Name: ${newDbName}`);
+            dbName = newDbName; 
+    
+            try {
+                fs.writeFileSync(dbFilePath, JSON.stringify({ db: dbName }), 'utf8');
+                console.log("✅ Database selection saved.");
+            } catch (error) {
+                console.error("❌ Error saving database:", error);
+            }
+        } else if (!newDbName) {
+            console.log("⚠️ No valid DB name found in URL, keeping current DB.");
+            
+            if (dbName !== loadStoredDb()) {
+                console.log("🔄 Redirecting to last saved DB...");
+                dbName = loadStoredDb(); 
+                mainWindow.loadURL(`https://www.mobi-cashier.com/${dbName}/get/`);
+            }
+        }
+    });
+    
+
+
+
+ 
+    
+ipcMain.on('open-print-window', () => {
+    openPrintWindow();
+});
 
     mainWindow.webContents.on('context-menu', (event, params) => {
         const menu = Menu.buildFromTemplate([

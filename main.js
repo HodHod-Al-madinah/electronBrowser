@@ -92,6 +92,7 @@ async function createWindow() {
 
     mainWindow.loadURL(`https://www.mobi-cashier.com/${dbName}/get/`);
 
+   
     let biosData;
     try {
         biosData = await getBiosData();

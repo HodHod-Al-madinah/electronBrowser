@@ -10,67 +10,45 @@ const { promptForScaleFactor } = require('./helpers/scaleHelper');
 const { printInvoiceWindow } = require('./helpers/printHelper');
 const { printInvoiceWindowA4 } = require('./helpers/printHelper');
 const { buildInvoiceMenu } = require('./helpers/menuHelper');
-const moment = require('moment-timezone');
+const fetch = require('node-fetch');
 
 
 
-
-
-function checkDateTime() {
+async function checkDateTime() {
     try {
-        console.log('🔍 Checking system date and time...');
-        log.info('🔍 Checking system date and time...');
+        console.log('🔍 Checking actual time against system time...');
+        const response = await fetch('https://timeapi.io/api/Time/current/zone?timeZone=Asia/Riyadh');
+        const data = await response.json();
 
-        const systemTimeUTC = new Date().toISOString();
-        const riyadhTimeUTC = moment().tz('Asia/Riyadh').utc().format();
+        const actualTime = new Date(data.datetime); 
+        const systemTime = new Date();           
 
-        console.log(`📅 System UTC Time: ${systemTimeUTC}`);
-        console.log(`📅 Riyadh UTC Time: ${riyadhTimeUTC}`);
-        log.info(`📅 System UTC Time: ${systemTimeUTC}`);
-        log.info(`📅 Riyadh UTC Time: ${riyadhTimeUTC}`);
+        const diffInSeconds = Math.abs(actualTime - systemTime) / 1000;
 
-        const systemTime = new Date(systemTimeUTC).getTime();
-        const riyadhTime = new Date(riyadhTimeUTC).getTime();
+        console.log(`📅 System Time: ${systemTime}`);
+        console.log(`🌐 Actual Riyadh Time: ${actualTime}`);
+        console.log(`⏳ Difference in seconds: ${diffInSeconds}`);
 
-        console.log(`🕰 System Time (ms): ${systemTime}`);
-        console.log(`🕰 Riyadh Time (ms): ${riyadhTime}`);
-        log.info(`🕰 System Time (ms): ${systemTime}`);
-        log.info(`🕰 Riyadh Time (ms): ${riyadhTime}`);
-
-        const timeDifference = Math.abs(riyadhTime - systemTime) / 1000;
-
-        console.log(`⏳ Time Difference (seconds): ${timeDifference}`);
-        log.info(`⏳ Time Difference (seconds): ${timeDifference}`);
-
-        if (timeDifference > 60) {  
-            console.error('❌ System Date/Time is incorrect! Please adjust it to the correct Riyadh time.');
-            log.error('❌ System Date/Time is incorrect! Please adjust it to the correct Riyadh time.');
-
-            app.whenReady().then(() => {
-                const { dialog } = require('electron');
-                dialog.showMessageBoxSync({
-                    type: 'error',
-                    title: 'Incorrect Date/Time',
-                    message: 'Your system date and time are incorrect. Please adjust them to Riyadh time (GMT+3) before using the app.',
-                    buttons: ['OK']
-                });
-
-                console.log('🔴 Exiting the app due to incorrect date/time...');
-                log.error('🔴 Exiting the app due to incorrect date/time...');
-                
-                setTimeout(() => {
-                    app.quit();
-                    process.exit(1); // Ensure the app force quits
-                }, 2000);
+        if (diffInSeconds > 120) {  
+            const { dialog } = require('electron');
+            dialog.showMessageBoxSync({
+                type: 'error',
+                title: 'Incorrect Date/Time',
+                message: 'يرجى ضبط وقت وتاريخ الجهاز للحصول على أفضل تجربة ممكنة.',
+                buttons: ['OK']
             });
+
+            setTimeout(() => {
+                app.quit();
+                process.exit(1);
+            }, 2000);
         } else {
-            console.log('✅ System Date/Time is correct.');
-            log.info('✅ System Date/Time is correct.');
+            console.log('✅ System time is correct');
         }
     } catch (error) {
-        console.error('🚨 Error in checkDateTime function:', error);
-        log.error('🚨 Error in checkDateTime function:', error);
+        console.error('🚨 Error checking time:', error);
     }
+
 }
 
 
@@ -148,7 +126,6 @@ function loadSettings() {
 }
 
 
-
 let hasReloadedOnce = false;
 
 //
@@ -184,8 +161,6 @@ async function createWindow() {
         scaleFactor = await promptForScaleFactor(mainWindow, scaleFactor);
         return scaleFactor;
     });
-
-
 
     //  custom title bar with reload button
     mainWindow.webContents.on('did-navigate', (event, url) => {
@@ -348,9 +323,6 @@ async function createWindow() {
         });
     });
 
-
-
-
     ipcMain.on('minimize-window', () => mainWindow.minimize());
     ipcMain.on('maximize-window', () => {
         if (mainWindow.isMaximized()) {
@@ -359,14 +331,20 @@ async function createWindow() {
             mainWindow.maximize();
         }
     });
-    ipcMain.on('close-window', () => mainWindow.close());
 
+    ipcMain.on('close-window', () => {
+        console.log("Close window requested");
+        mainWindow.close();
+    });
+    
     //
     mainWindow.on('focus', () => {
         mainWindow.webContents.executeJavaScript(`
             const titleBar = document.getElementById('customTitleBar');
             if (titleBar) titleBar.style.background = '#e5e5e5';
-        `);
+        `).catch(error => {
+            console.error("Error executing login script:", error);
+        });
     });
 
     //
@@ -374,7 +352,9 @@ async function createWindow() {
         mainWindow.webContents.executeJavaScript(`
             const titleBar = document.getElementById('customTitleBar');
             if (titleBar) titleBar.style.background = '#f0f0f0';
-        `);
+        `).catch(error => {
+            console.error("Error executing login script:", error);
+        });
     });
 
     //
@@ -564,7 +544,9 @@ async function createWindow() {
                     }
                 });
             });
-        `);
+        `).catch(error => {
+            console.error("Error executing login script:", error);
+        });
     });
 
     //

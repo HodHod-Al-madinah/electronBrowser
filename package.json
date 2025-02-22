@@ -5,11 +5,11 @@
   "description": "A browser-based cashier application built with Electron",
   "author": "Hammam Alageed",
   "license": "ISC",
-"scripts": {
-  "start": "electron . --enable-logging",
-  "build": "electron-builder",
-  "dist": "electron-builder --win"
-},
+  "scripts": {
+    "start": "electron . --enable-logging",
+    "build": "electron-builder",
+    "dist": "electron-builder --win"
+  },
   "keywords": [
     "electron",
     "cashier",
@@ -26,6 +26,7 @@
     "jquery": "^3.7.1",
     "moment": "^2.30.1",
     "moment-timezone": "^0.5.46",
+    "node-fetch": "^2.7.0",
     "systeminformation": "^5.23.5"
   },
   "build": {

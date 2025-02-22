@@ -2,7 +2,7 @@ const { app, BrowserWindow, shell, Menu, ipcMain } = require('electron');
 
  const fs = require('fs');
 const path = require('path');
-const { getWMICInfo } = require('./helpers/biosHelper');  
+const { getBiosData } = require('./helpers/biosHelper'); // Import getBiosData
 const { convertToPDF } = require('./helpers/pdfHelper');
 const { convertToJPG } = require('./helpers/jpgHelper');
 const { promptForScaleFactor } = require('./helpers/scaleHelper');
@@ -92,25 +92,30 @@ async function createWindow() {
 
     mainWindow.loadURL(`https://www.mobi-cashier.com/${dbName}/get/`);
 
-   
-    const systemInfo = await getWMICInfo();
-    const processorId = systemInfo.processorId;
-    const uuid = systemInfo.uuid;
-    const motherboardSerial = systemInfo.motherboardSerial;
+    let biosData;
+    try {
+        biosData = await getBiosData();
+    } catch (error) {
+
+        location.reload();
+        console.error('Failed to fetch BIOS data:', error);
+        biosData = { serial: 'default-serial' };  
+    }
+    const serial = biosData.serial;
 
 
-
-    mainWindow.webContents.on('did-finish-load', async () => {
-        const serial = `${processorId}-${uuid}-${motherboardSerial}`;
-
+    mainWindow.webContents.on('did-finish-load', () => {
+    
         mainWindow.webContents.executeJavaScript(`
             $(document).ready(() => {
                 $('#name').focus();
-                 $(document).off('click', '.login').on('click', '.login', (event) => {
+    
+                $(document).off('click', '.login').on('click', '.login', (event) => {
                     let username = $('#name').val();
                     let serial = "${serial}";
                     let password = $('#password').val();
-                     if (validateData(username, password)) {
+
+                    if (validateData(username, password)) {
                         const csrfToken = $('meta[name="csrf-token"]').attr('content');
                         $.ajax({
                             url: '/login',
@@ -174,6 +179,7 @@ async function createWindow() {
         });
     });
     
+
 
     mainWindow.webContents.setWindowOpenHandler(({ url }) => {
         if (url.includes('https://www.mobi-cashier.com/invoice') || url.includes('https://www.mobi-cashier.com/period-report-htm')) {

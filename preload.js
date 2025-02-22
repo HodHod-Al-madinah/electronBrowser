@@ -5,6 +5,11 @@ window.language = 'en-US';
 
 // Use `contextBridge` to securely expose limited APIs
 contextBridge.exposeInMainWorld('electron', {
+  getCurrentUrl: () => ipcRenderer.invoke('get-current-url'),
+
+  send: (channel, data) => {
+    ipcRenderer.send(channel, data);
+  },
   // Close the current window
   closeWindow: () => ipcRenderer.send('close-window'),
 

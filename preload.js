@@ -1,5 +1,6 @@
 const { contextBridge, ipcRenderer } = require('electron');
 
+
 // Set global language
 window.language = 'en-US';
 
@@ -37,6 +38,7 @@ contextBridge.exposeInMainWorld('electron', {
 contextBridge.exposeInMainWorld('api', {
   // Listen for BIOS data sent by the main process
   onBiosData: (callback) => ipcRenderer.on('bios-data', (event, data) => callback(data)),
+  changeDbName: (newDbName) => ipcRenderer.send('change-db-name', newDbName),
 
   // Listen for custom events
   onCustomEvent: (channel, callback) => {

@@ -200,8 +200,9 @@ async function createWindow() {
     
     
       
+      
     mainWindow.webContents.setWindowOpenHandler(({ url }) => {
-        if (url.includes('https://www.mobi-cashier.com/invoice') || url.includes('https://www.mobi-cashier.com/period-report-htm')) {
+        if (url.includes('http://127.0.0.1:8000/invoice') || url.includes('http://127.0.0.1:8000/period-report-htm')) {
             const invoiceWindow = new BrowserWindow({
                 show: false,
                 webPreferences: {
@@ -219,7 +220,15 @@ async function createWindow() {
             });
             return { action: 'deny' };
         }
-        else if(url.includes('https://www.mobi-cashier.com/invoice-print')){
+        else {
+            shell.openExternal(url);
+            return { action: 'deny' };
+        }
+    });
+
+
+    mainWindow.webContents.setWindowOpenHandler(({ url }) => {
+        if (url.includes('http://127.0.0.1:8000/invoice-print')) {
             const printWindow = new BrowserWindow({
                 width: 800,
                 height: 900,
@@ -229,18 +238,38 @@ async function createWindow() {
                     contextIsolation: true,
                 }
             });
-
+    
             printWindow.loadURL(url);
-
+    
             printWindow.webContents.once('did-finish-load', () => {
-                printWindow.webContents.executeJavaScript(`window.print();`);
+                printWindow.webContents.executeJavaScript(`
+                    const printButton = document.createElement('button');
+                    printButton.textContent = 'طباعة الفاتورة';
+                    printButton.style.position = 'fixed';
+                    printButton.style.top = '10px';
+                    printButton.style.right = '10px';
+                    printButton.style.padding = '10px';
+                    printButton.style.backgroundColor = '#007bff';
+                    printButton.style.color = 'white';
+                    printButton.style.border = 'none';
+                    printButton.style.cursor = 'pointer';
+                    printButton.style.fontSize = '16px';
+                    printButton.style.borderRadius = '5px';
+    
+                    printButton.onclick = () => {
+                        window.print();
+                    };
+    
+                    document.body.appendChild(printButton);
+                `);
             });
+    
+            return { action: 'deny' }; // Prevent opening in external browser
         } else {
             shell.openExternal(url);
             return { action: 'deny' };
         }
     });
-
 
     mainWindow.webContents.on('did-finish-load', () => {
         mainWindow.webContents.executeJavaScript(`

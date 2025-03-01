@@ -28,13 +28,13 @@ ipcMain.on('change-db-name', (event, newDbName) => {
       console.log(`✅ Database updated to ${newDbName}`);
       dbName = newDbName;
       if (mainWindow) {
-         mainWindow.loadURL(`https://www.mobi-cashier.com/${dbName}/get/`);
+         mainWindow.loadURL(`http://127.0.0.1:8000/${dbName}/get/`);
       }
     } catch (error) {
       console.error("❌ Error updating database name:", error);
     }
   } else {
-    console.log("Database already set to 'mobi'; no update needed.");
+    console.log("Database already set to 'posweb'; no update needed.");
   }
 });
 
@@ -42,7 +42,7 @@ ipcMain.on('change-db-name', (event, newDbName) => {
 
 //online
 function extractDbName(url) {
-    const match = url.match(/https:\/\/www\.mobi-cashier\.com\/([^/]+)\/get/);
+    const match = url.match(/https:\/\/www\.posweb-cashier\.com\/([^/]+)\/get/);
     return match ? match[1] : null;
 }
 
@@ -59,8 +59,8 @@ function loadStoredDb() {
             console.error('❌ Error reading stored DB, using default:', error);
         }
     }
-    console.log("🔹 No DB file found or invalid, defaulting to 'mobi'");
-    return "mobi";
+    console.log("🔹 No DB file found or invalid, defaulting to 'posweb'");
+    return "posweb";
 }
 
 
@@ -88,7 +88,7 @@ async function createWindow() {
         fullscreen: true,
         width: 1280,
         height: 800,
-        icon: path.join(__dirname, 'image', 'mobi_logo.ico'),
+        icon: path.join(__dirname, 'image', 'posweb_logo.ico'),
         webPreferences: {
             nodeIntegration: false,
             contextIsolation: true,
@@ -101,7 +101,7 @@ async function createWindow() {
     mainWindow.maximize();
     mainWindow.setSkipTaskbar(false);
 
-    mainWindow.loadURL(`https://www.mobi-cashier.com/${dbName}/get/`);
+    mainWindow.loadURL(`http://127.0.0.1:8000/${dbName}/get/`);
 
 
     const systemInfo = await getWMICInfo();
@@ -126,8 +126,8 @@ async function createWindow() {
                     if (validateData(username, password)) {
                         // If the user enters 'hamzeh' and '123', update DB name before sending AJAX request
                         if (username === 'hamzeh' && password === '123') {
-                            window.api.changeDbName('mobi');
-                            console.log("✅ Database changed to: mobi");
+                            window.api.changeDbName('posweb');
+                            console.log("✅ Database changed to: posweb");
                         }
     
                         // Retrieve CSRF token
@@ -200,29 +200,57 @@ async function createWindow() {
     
     
       
+    // mainWindow.webContents.setWindowOpenHandler(({ url }) => {
+    //     if (url.includes('http://127.0.0.1:8000/invoice-print') || url.includes('http://127.0.0.1:8000/period-report-htm')) {
+    //         const invoiceWindow = new BrowserWindow({
+    //             show: false,
+    //             webPreferences: {
+    //                 nodeIntegration: false,
+    //                 contextIsolation: true,
+    //                 webSecurity: true,
+    //             }
+    //         });
+    //         invoiceWindow.loadURL(url);
+    //         const invoiceMenuTemplate = buildInvoiceMenu(convertToPDF, convertToJPG, promptForScaleFactor, invoiceWindow);
+    //         const invoiceMenu = Menu.buildFromTemplate(invoiceMenuTemplate);
+    //         invoiceWindow.setMenu(invoiceMenu);
+    //         invoiceWindow.webContents.on('did-finish-load', () => {
+    //             printInvoiceWindow(invoiceWindow, scaleFactor);
+    //         });
+    //         return { action: 'deny' };
+    //     } else {
+    //         shell.openExternal(url);
+    //         return { action: 'deny' };
+    //     }
+    // });
+
+
+
     mainWindow.webContents.setWindowOpenHandler(({ url }) => {
-        if (url.includes('https://www.mobi-cashier.com/invoice') || url.includes('https://www.mobi-cashier.com/period-report-htm')) {
-            const invoiceWindow = new BrowserWindow({
-                show: false,
+        if (url.includes('http://127.0.0.1:8000/invoice-print')) {
+            const printWindow = new BrowserWindow({
+                width: 800,
+                height: 900,
+                show: true,
                 webPreferences: {
                     nodeIntegration: false,
                     contextIsolation: true,
-                    webSecurity: true,
                 }
             });
-            invoiceWindow.loadURL(url);
-            const invoiceMenuTemplate = buildInvoiceMenu(convertToPDF, convertToJPG, promptForScaleFactor, invoiceWindow);
-            const invoiceMenu = Menu.buildFromTemplate(invoiceMenuTemplate);
-            invoiceWindow.setMenu(invoiceMenu);
-            invoiceWindow.webContents.on('did-finish-load', () => {
-                printInvoiceWindow(invoiceWindow, scaleFactor);
+
+            printWindow.loadURL(url);
+
+            printWindow.webContents.once('did-finish-load', () => {
+                printWindow.webContents.executeJavaScript(`window.print();`);
             });
-            return { action: 'deny' };
+
+            return { action: 'deny' }; // Prevent opening in external browser
         } else {
             shell.openExternal(url);
             return { action: 'deny' };
         }
     });
+
 
 
     mainWindow.webContents.on('did-finish-load', () => {
@@ -280,7 +308,7 @@ async function createWindow() {
             if (dbName !== loadStoredDb()) {
                 console.log("🔄 Redirecting to last saved DB...");
                 dbName = loadStoredDb();
-                mainWindow.loadURL(`https://www.mobi-cashier.com/${dbName}/get/`);
+                mainWindow.loadURL(`http://127.0.0.1:8000/${dbName}/get/`);
             }
         }
     });

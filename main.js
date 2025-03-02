@@ -237,34 +237,16 @@ async function createWindow() {
                     contextIsolation: true,
                 }
             });
-    
+        
             printWindow.loadURL(url);
-    
+        
             printWindow.webContents.once('did-finish-load', () => {
-                printWindow.webContents.executeJavaScript(`
-                    const printButton = document.createElement('button');
-                    printButton.textContent = 'طباعة الفاتورة';
-                    printButton.style.position = 'fixed';
-                    printButton.style.top = '10px';
-                    printButton.style.right = '10px';
-                    printButton.style.padding = '10px';
-                    printButton.style.backgroundColor = '#007bff';
-                    printButton.style.color = 'white';
-                    printButton.style.border = 'none';
-                    printButton.style.cursor = 'pointer';
-                    printButton.style.fontSize = '16px';
-                    printButton.style.borderRadius = '5px';
-    
-                    printButton.onclick = () => {
-                        window.print();
-                    };
-    
-                    document.body.appendChild(printButton);
-                `);
+                printWindow.webContents.executeJavaScript(`window.print();`);
             });
-    
+        
             return { action: 'deny' }; // Prevent opening in external browser
-        } else {
+        }
+         else {
             shell.openExternal(url);
             return { action: 'deny' };
         }

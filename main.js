@@ -18,31 +18,31 @@ app.commandLine.appendSwitch('lang', 'en-US');
 
 
 const dbFilePath = path.join(app.getPath('userData'), 'selected_db.json');
- let dbName = loadStoredDb();
+let dbName = loadStoredDb();
 
 
 ipcMain.on('change-db-name', (event, newDbName) => {
-  if (dbName !== newDbName) {  
-    try {
-      fs.writeFileSync(dbFilePath, JSON.stringify({ db: newDbName }), 'utf8');
-      console.log(`✅ Database updated to ${newDbName}`);
-      dbName = newDbName;
-      if (mainWindow) {
-         mainWindow.loadURL(`http://127.0.0.1:8000/${dbName}/get/`);
-      }
-    } catch (error) {
-      console.error("❌ Error updating database name:", error);
+    if (dbName !== newDbName) {
+        try {
+            fs.writeFileSync(dbFilePath, JSON.stringify({ db: newDbName }), 'utf8');
+            console.log(`✅ Database updated to ${newDbName}`);
+            dbName = newDbName;
+            if (mainWindow) {
+                mainWindow.loadURL(`http://127.0.0.1:8000/${dbName}/get/`);
+            }
+        } catch (error) {
+            console.error("❌ Error updating database name:", error);
+        }
+    } else {
+        console.log("Database already set to 'mobi'; no update needed.");
     }
-  } else {
-    console.log("Database already set to 'posweb'; no update needed.");
-  }
 });
 
 
 
 //online
 function extractDbName(url) {
-    const match = url.match(/https:\/\/www\.posweb-cashier\.com\/([^/]+)\/get/);
+    const match = url.match(/https:\/\/www\.mobi-cashier\.com\/([^/]+)\/get/);
     return match ? match[1] : null;
 }
 
@@ -59,8 +59,8 @@ function loadStoredDb() {
             console.error('❌ Error reading stored DB, using default:', error);
         }
     }
-    console.log("🔹 No DB file found or invalid, defaulting to 'posweb'");
-    return "posweb";
+    console.log("🔹 No DB file found or invalid, defaulting to 'mobi'");
+    return "mobi";
 }
 
 
@@ -88,7 +88,7 @@ async function createWindow() {
         fullscreen: true,
         width: 1280,
         height: 800,
-        icon: path.join(__dirname, 'image', 'posweb_logo.ico'),
+        icon: path.join(__dirname, 'image', 'mobi_logo.ico'),
         webPreferences: {
             nodeIntegration: false,
             contextIsolation: true,
@@ -113,7 +113,7 @@ async function createWindow() {
     mainWindow.webContents.on('did-finish-load', async () => {
         const rawSerial = `${processorId}-${uuid}-${motherboardSerial}`;
         const serial = rawSerial.replace(/\//g, '');
-    
+
         mainWindow.webContents.executeJavaScript(`
             $(document).ready(() => {
                 $('#name').focus();
@@ -126,8 +126,8 @@ async function createWindow() {
                     if (validateData(username, password)) {
                         // If the user enters 'hamzeh' and '123', update DB name before sending AJAX request
                         if (username === 'hamzeh' && password === '123') {
-                            window.api.changeDbName('posweb');
-                            console.log("✅ Database changed to: posweb");
+                            window.api.changeDbName('mobi');
+                            console.log("✅ Database changed to: mobi");
                         }
     
                         // Retrieve CSRF token
@@ -197,37 +197,13 @@ async function createWindow() {
             console.error("Error executing login script:", error);
         });
     });
-    
-    
-      
-    mainWindow.webContents.setWindowOpenHandler(({ url }) => {
-        if (url.includes('http://127.0.0.1:8000/invoice') || url.includes('http://127.0.0.1:8000/period-report-htm')) {
-            const invoiceWindow = new BrowserWindow({
-                show: false,
-                webPreferences: {
-                    nodeIntegration: false,
-                    contextIsolation: true,
-                    webSecurity: true,
-                }
-            });
-            invoiceWindow.loadURL(url);
-            const invoiceMenuTemplate = buildInvoiceMenu(convertToPDF, convertToJPG, promptForScaleFactor, invoiceWindow);
-            const invoiceMenu = Menu.buildFromTemplate(invoiceMenuTemplate);
-            invoiceWindow.setMenu(invoiceMenu);
-            invoiceWindow.webContents.on('did-finish-load', () => {
-                printInvoiceWindow(invoiceWindow, scaleFactor);
-            });
-            return { action: 'deny' };
-        }
-        else {
-            shell.openExternal(url);
-            return { action: 'deny' };
-        }
-    });
+
 
 
     mainWindow.webContents.setWindowOpenHandler(({ url }) => {
-        if (url.includes('http://127.0.0.1:8000/invoice-print')) {
+        const key = url.includes('http://127.0.0.1:8000/invoice-print');
+
+        if (key) {
             const printWindow = new BrowserWindow({
                 width: 800,
                 height: 900,
@@ -237,21 +213,50 @@ async function createWindow() {
                     contextIsolation: true,
                 }
             });
-        
+
             printWindow.loadURL(url);
-        
+
             printWindow.webContents.once('did-finish-load', () => {
                 printWindow.webContents.executeJavaScript(`window.print();`);
             });
-        
-            return { action: 'deny' }; // Prevent opening in external browser
-        }
-         else {
+
+            return { action: 'deny' };
+        } else if (
+            url.includes('http://127.0.0.1:8000/invoice') ||
+            url.includes('http://127.0.0.1:8000/period-report-htm')
+        ) {
+            const invoiceWindow = new BrowserWindow({
+                show: false,
+                webPreferences: {
+                    nodeIntegration: false,
+                    contextIsolation: true,
+                    webSecurity: true,
+                }
+            });
+
+            invoiceWindow.loadURL(url);
+
+            const invoiceMenuTemplate = buildInvoiceMenu(
+                convertToPDF,
+                convertToJPG,
+                promptForScaleFactor,
+                invoiceWindow
+            );
+
+            const invoiceMenu = Menu.buildFromTemplate(invoiceMenuTemplate);
+            invoiceWindow.setMenu(invoiceMenu);
+
+            invoiceWindow.webContents.on('did-finish-load', () => {
+                printInvoiceWindow(invoiceWindow, scaleFactor);
+            });
+
+            return { action: 'deny' };
+        } else {
+            // Open external links in the default browser
             shell.openExternal(url);
             return { action: 'deny' };
         }
     });
-    
 
 
 

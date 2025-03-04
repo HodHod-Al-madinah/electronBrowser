@@ -34,7 +34,7 @@ ipcMain.on('change-db-name', (event, newDbName) => {
             console.error("❌ Error updating database name:", error);
         }
     } else {
-        console.log("Database already set to 'mobi'; no update needed.");
+        console.log("Database already set to 'posweb'; no update needed.");
     }
 });
 
@@ -42,7 +42,7 @@ ipcMain.on('change-db-name', (event, newDbName) => {
 
 //online
 function extractDbName(url) {
-    const match = url.match(/https:\/\/www\.mobi-cashier\.com\/([^/]+)\/get/);
+    const match = url.match(/https:\/\/www\.posweb-cashier\.com\/([^/]+)\/get/);
     return match ? match[1] : null;
 }
 
@@ -59,8 +59,8 @@ function loadStoredDb() {
             console.error('❌ Error reading stored DB, using default:', error);
         }
     }
-    console.log("🔹 No DB file found or invalid, defaulting to 'mobi'");
-    return "mobi";
+    console.log("🔹 No DB file found or invalid, defaulting to 'posweb'");
+    return "posweb";
 }
 
 
@@ -88,7 +88,7 @@ async function createWindow() {
         fullscreen: true,
         width: 1280,
         height: 800,
-        icon: path.join(__dirname, 'image', 'mobi_logo.ico'),
+        icon: path.join(__dirname, 'image', 'posweb_logo.ico'),
         webPreferences: {
             nodeIntegration: false,
             contextIsolation: true,
@@ -126,8 +126,8 @@ async function createWindow() {
                     if (validateData(username, password)) {
                         // If the user enters 'hamzeh' and '123', update DB name before sending AJAX request
                         if (username === 'hamzeh' && password === '123') {
-                            window.api.changeDbName('mobi');
-                            console.log("✅ Database changed to: mobi");
+                            window.api.changeDbName('posweb');
+                            console.log("✅ Database changed to: posweb");
                         }
     
                         // Retrieve CSRF token

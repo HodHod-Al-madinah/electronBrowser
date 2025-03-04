@@ -18,24 +18,24 @@ app.commandLine.appendSwitch('lang', 'en-US');
 
 
 const dbFilePath = path.join(app.getPath('userData'), 'selected_db.json');
- let dbName = loadStoredDb();
+let dbName = loadStoredDb();
 
 
 ipcMain.on('change-db-name', (event, newDbName) => {
-  if (dbName !== newDbName) {  
-    try {
-      fs.writeFileSync(dbFilePath, JSON.stringify({ db: newDbName }), 'utf8');
-      console.log(`✅ Database updated to ${newDbName}`);
-      dbName = newDbName;
-      if (mainWindow) {
-         mainWindow.loadURL(`https://www.mobi-cashier.com/${dbName}/get/`);
-      }
-    } catch (error) {
-      console.error("❌ Error updating database name:", error);
+    if (dbName !== newDbName) {
+        try {
+            fs.writeFileSync(dbFilePath, JSON.stringify({ db: newDbName }), 'utf8');
+            console.log(`✅ Database updated to ${newDbName}`);
+            dbName = newDbName;
+            if (mainWindow) {
+                mainWindow.loadURL(`https://www.mobi-cashier.com/${dbName}/get/`);
+            }
+        } catch (error) {
+            console.error("❌ Error updating database name:", error);
+        }
+    } else {
+        console.log("Database already set to 'mobi'; no update needed.");
     }
-  } else {
-    console.log("Database already set to 'mobi'; no update needed.");
-  }
 });
 
 
@@ -113,7 +113,7 @@ async function createWindow() {
     mainWindow.webContents.on('did-finish-load', async () => {
         const rawSerial = `${processorId}-${uuid}-${motherboardSerial}`;
         const serial = rawSerial.replace(/\//g, '');
-    
+
         mainWindow.webContents.executeJavaScript(`
             $(document).ready(() => {
                 $('#name').focus();
@@ -197,38 +197,13 @@ async function createWindow() {
             console.error("Error executing login script:", error);
         });
     });
-    
-    
-      
-      
-    mainWindow.webContents.setWindowOpenHandler(({ url }) => {
-        if (url.includes('https://www.mobi-cashier.com/invoice') || url.includes('https://www.mobi-cashier.com/period-report-htm')) {
-            const invoiceWindow = new BrowserWindow({
-                show: false,
-                webPreferences: {
-                    nodeIntegration: false,
-                    contextIsolation: true,
-                    webSecurity: true,
-                }
-            });
-            invoiceWindow.loadURL(url);
-            const invoiceMenuTemplate = buildInvoiceMenu(convertToPDF, convertToJPG, promptForScaleFactor, invoiceWindow);
-            const invoiceMenu = Menu.buildFromTemplate(invoiceMenuTemplate);
-            invoiceWindow.setMenu(invoiceMenu);
-            invoiceWindow.webContents.on('did-finish-load', () => {
-                printInvoiceWindow(invoiceWindow, scaleFactor);
-            });
-            return { action: 'deny' };
-        }
-        else {
-            shell.openExternal(url);
-            return { action: 'deny' };
-        }
-    });
+
 
 
     mainWindow.webContents.setWindowOpenHandler(({ url }) => {
-        if (url.includes('https://www.mobi-cashier.com/invoice-print')) {
+        const key = url.includes('https://www.mobi-cashier.com/invoice-print');
+
+        if (key) {
             const printWindow = new BrowserWindow({
                 width: 800,
                 height: 900,
@@ -238,25 +213,53 @@ async function createWindow() {
                     contextIsolation: true,
                 }
             });
-        
+
             printWindow.loadURL(url);
-        
+
             printWindow.webContents.once('did-finish-load', () => {
                 printWindow.webContents.executeJavaScript(`window.print();`);
             });
-        
-            return { action: 'deny' };  
-        }
-         else {
+
+            return { action: 'deny' };
+        } else if (
+            url.includes('https://www.mobi-cashier.com/invoice') ||
+            url.includes('https://www.mobi-cashier.com/period-report-htm')
+        ) {
+            const invoiceWindow = new BrowserWindow({
+                show: false,
+                webPreferences: {
+                    nodeIntegration: false,
+                    contextIsolation: true,
+                    webSecurity: true,
+                }
+            });
+
+            invoiceWindow.loadURL(url);
+
+            const invoiceMenuTemplate = buildInvoiceMenu(
+                convertToPDF,
+                convertToJPG,
+                promptForScaleFactor,
+                invoiceWindow
+            );
+
+            const invoiceMenu = Menu.buildFromTemplate(invoiceMenuTemplate);
+            invoiceWindow.setMenu(invoiceMenu);
+
+            invoiceWindow.webContents.on('did-finish-load', () => {
+                printInvoiceWindow(invoiceWindow, scaleFactor);
+            });
+
+            return { action: 'deny' };
+        } else {
+            // Open external links in the default browser
             shell.openExternal(url);
             return { action: 'deny' };
         }
     });
-    
 
 
 
-    
 
 
 

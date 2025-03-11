@@ -122,9 +122,11 @@ async function createWindow() {
                     let username = $('#name').val();
                     let password = $('#password').val();
                     let serial = "${serial}";
-                          let dbName = "${dbName}"; 
+                         
+                    
+                    let dbName = "${dbName}"; 
+                    localStorage.setItem('dbName', dbName);
 
-                         localStorage.setItem('dbName', 'dbName');
 
                     if (validateData(username, password)) {
                         // If the user enters 'hamzeh' and '123', update DB name before sending AJAX request

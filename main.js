@@ -222,7 +222,7 @@ async function createWindow() {
 
             return { action: 'deny' };
         } else if (
-            url.includes('http://127.0.0.1:8000/invoice') ||
+            url.startsWith('http://127.0.0.1:8000/invoice') ||
             url.includes('http://127.0.0.1:8000/period-report-htm')
         ) {
             const invoiceWindow = new BrowserWindow({

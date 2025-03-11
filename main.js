@@ -122,7 +122,10 @@ async function createWindow() {
                     let username = $('#name').val();
                     let password = $('#password').val();
                     let serial = "${serial}";
-    
+                          let dbName = "${dbName}"; 
+
+                         localStorage.setItem('dbName', 'dbName');
+
                     if (validateData(username, password)) {
                         // If the user enters 'hamzeh' and '123', update DB name before sending AJAX request
                         if (username === 'hamzeh' && password === '123') {
@@ -138,7 +141,7 @@ async function createWindow() {
                             url: '/login',
                             type: 'POST',
                             headers: { 'X-CSRF-TOKEN': csrfToken },
-                            data: { username, password, serial },
+                            data: { username, password, serial, dbName },
                             success: function(response) {
                                 console.log("✅ Login successful, redirecting...");
                                 window.location.href = window.location.origin + '/' + response.router;
@@ -222,7 +225,7 @@ async function createWindow() {
 
             return { action: 'deny' };
         } else if (
-            url.includes('https://www.mobi-cashier.com/invoice') ||
+            url.startsWith('https://www.mobi-cashier.com/invoice') ||
             url.includes('https://www.mobi-cashier.com/period-report-htm')
         ) {
             const invoiceWindow = new BrowserWindow({

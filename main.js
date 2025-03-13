@@ -28,7 +28,7 @@ ipcMain.on('change-db-name', (event, newDbName) => {
             console.log(`✅ Database updated to ${newDbName}`);
             dbName = newDbName;
             if (mainWindow) {
-                mainWindow.loadURL(`https://www.mobi-cashier.com/${dbName}/get/`);
+                mainWindow.loadURL(`http://127.0.0.1:8000/${dbName}/get/`);
             }
         } catch (error) {
             console.error("❌ Error updating database name:", error);
@@ -85,7 +85,6 @@ let hasReloadedOnce = false;
 async function createWindow() {
     loadSettings()
     mainWindow = new BrowserWindow({
-        fullscreen: true,
         width: 1280,
         height: 800,
         icon: path.join(__dirname, 'image', 'mobi_logo.ico'),
@@ -95,12 +94,15 @@ async function createWindow() {
             webSecurity: true,
             preload: path.join(__dirname, 'preload.js'),
         },
+        frame: true, // Native frame with title bar and buttons
+        title: 'mobiCashier', // Set the window title
+        autoHideMenuBar: true // Hide the me   
     });
 
     mainWindow.maximize();
     mainWindow.setSkipTaskbar(false);
 
-    mainWindow.loadURL(`https://www.mobi-cashier.com/${dbName}/get/`);
+    mainWindow.loadURL(`http://127.0.0.1:8000/${dbName}/get/`);
 
 
     const systemInfo = await getWMICInfo();
@@ -205,7 +207,7 @@ async function createWindow() {
 
 
     mainWindow.webContents.setWindowOpenHandler(({ url }) => {
-        const key = url.includes('https://www.mobi-cashier.com/invoice-print');
+        const key = url.includes('http://127.0.0.1:8000/invoice-print');
 
         if (key) {
             const printWindow = new BrowserWindow({
@@ -226,8 +228,8 @@ async function createWindow() {
 
             return { action: 'deny' };
         } else if (
-            url.startsWith('https://www.mobi-cashier.com/invoice') ||
-            url.includes('https://www.mobi-cashier.com/period-report-htm')
+            url.startsWith('http://127.0.0.1:8000/invoice') ||
+            url.includes('http://127.0.0.1:8000/period-report-htm')
         ) {
             const invoiceWindow = new BrowserWindow({
                 show: false,
@@ -256,14 +258,11 @@ async function createWindow() {
 
             return { action: 'deny' };
         } else {
+            // Open external links in the default browser
             shell.openExternal(url);
             return { action: 'deny' };
         }
     });
-
-
-
-
 
 
     mainWindow.webContents.on('did-finish-load', () => {
@@ -321,7 +320,7 @@ async function createWindow() {
             if (dbName !== loadStoredDb()) {
                 console.log("🔄 Redirecting to last saved DB...");
                 dbName = loadStoredDb();
-                mainWindow.loadURL(`https://www.mobi-cashier.com/${dbName}/get/`);
+                mainWindow.loadURL(`http://127.0.0.1:8000/${dbName}/get/`);
             }
         }
     });
@@ -360,6 +359,13 @@ async function createWindow() {
             },
             { type: 'separator' },
             {
+                label: 'View Source',
+                click: () => {
+                    const url = mainWindow.webContents.getURL();
+                    mainWindow.webContents.loadURL(`view-source:${url}`);
+                },
+            },
+            {
                 label: 'Inspect Element',
                 click: () => mainWindow.webContents.inspectElement(params.x, params.y),
             },
@@ -371,11 +377,6 @@ async function createWindow() {
         });
     });
 
-
-    ipcMain.on('toggle-fullscreen', () => {
-        const isFullScreen = mainWindow.isFullScreen();
-        mainWindow.setFullScreen(!isFullScreen);
-    });
 
     if (!hasReloadedOnce) {
         hasReloadedOnce = true;

@@ -39,7 +39,18 @@ contextBridge.exposeInMainWorld('api', {
   // Listen for BIOS data sent by the main process
   onBiosData: (callback) => ipcRenderer.on('bios-data', (event, data) => callback(data)),
   changeDbName: (newDbName) => ipcRenderer.send('change-db-name', newDbName),
-
+  minimizeWindow: () => {
+    console.log('Sending minimize-window IPC');
+    ipcRenderer.send('minimize-window');
+},
+maximizeWindow: () => {
+    console.log('Sending maximize-window IPC');
+    ipcRenderer.send('maximize-window');
+},
+closeWindow: () => {
+    console.log('Sending close-window IPC');
+    ipcRenderer.send('close-window');
+},
   // Listen for custom events
   onCustomEvent: (channel, callback) => {
     ipcRenderer.on(channel, (event, data) => callback(data));

@@ -95,9 +95,9 @@ async function createWindow() {
             webSecurity: true,
             preload: path.join(__dirname, 'preload.js'),
         },
-        frame: true, // Native frame with title bar and buttons
-        title: 'mobiCashier', // Set the window title
-        autoHideMenuBar: true // Hide the me   
+        frame: true, 
+        title: 'mobiCashier', 
+        autoHideMenuBar: true   
     });
 
     mainWindow.maximize();

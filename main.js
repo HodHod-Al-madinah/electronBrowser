@@ -7,6 +7,7 @@ const { convertToPDF } = require('./helpers/pdfHelper');
 const { convertToJPG } = require('./helpers/jpgHelper');
 const { promptForScaleFactor } = require('./helpers/scaleHelper');
 const { printInvoiceWindow } = require('./helpers/printHelper');
+const { printInvoiceWindowA4 } = require('./helpers/printHelper');
 const { buildInvoiceMenu } = require('./helpers/menuHelper');
 
 
@@ -85,7 +86,6 @@ let hasReloadedOnce = false;
 async function createWindow() {
     loadSettings()
     mainWindow = new BrowserWindow({
-        fullscreen: true,
         width: 1280,
         height: 800,
         icon: path.join(__dirname, 'image', 'mobi_logo.ico'),
@@ -95,7 +95,9 @@ async function createWindow() {
             webSecurity: true,
             preload: path.join(__dirname, 'preload.js'),
         },
-        frame: true
+        frame: true, // Native frame with title bar and buttons
+        title: 'mobiCashier', // Set the window title
+        autoHideMenuBar: true // Hide the me   
     });
 
     mainWindow.maximize();
@@ -250,22 +252,21 @@ async function createWindow() {
 
             const invoiceMenu = Menu.buildFromTemplate(invoiceMenuTemplate);
             invoiceWindow.setMenu(invoiceMenu);
-
+    
             invoiceWindow.webContents.on('did-finish-load', () => {
-                printInvoiceWindow(invoiceWindow, scaleFactor);
+                 if (url.includes('/invoice/a4')) {
+                    printInvoiceWindowA4(invoiceWindow, scaleFactor);
+                } else {
+                    printInvoiceWindow(invoiceWindow, scaleFactor);
+                }
             });
-
+    
             return { action: 'deny' };
         } else {
-            // Open external links in the default browser
             shell.openExternal(url);
             return { action: 'deny' };
         }
     });
-
-
-
-
 
 
     mainWindow.webContents.on('did-finish-load', () => {
@@ -380,11 +381,6 @@ async function createWindow() {
         });
     });
 
-
-    ipcMain.on('toggle-fullscreen', () => {
-        const isFullScreen = mainWindow.isFullScreen();
-        mainWindow.setFullScreen(!isFullScreen);
-    });
 
     if (!hasReloadedOnce) {
         hasReloadedOnce = true;

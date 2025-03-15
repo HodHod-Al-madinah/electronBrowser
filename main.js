@@ -7,6 +7,7 @@ const { convertToPDF } = require('./helpers/pdfHelper');
 const { convertToJPG } = require('./helpers/jpgHelper');
 const { promptForScaleFactor } = require('./helpers/scaleHelper');
 const { printInvoiceWindow } = require('./helpers/printHelper');
+const { printInvoiceWindowA4 } = require('./helpers/printHelper');
 const { buildInvoiceMenu } = require('./helpers/menuHelper');
 
 
@@ -251,14 +252,17 @@ async function createWindow() {
 
             const invoiceMenu = Menu.buildFromTemplate(invoiceMenuTemplate);
             invoiceWindow.setMenu(invoiceMenu);
-
+    
             invoiceWindow.webContents.on('did-finish-load', () => {
-                printInvoiceWindow(invoiceWindow, scaleFactor);
+                 if (url.includes('/invoice/a4')) {
+                    printInvoiceWindowA4(invoiceWindow, scaleFactor);
+                } else {
+                    printInvoiceWindow(invoiceWindow, scaleFactor);
+                }
             });
-
+    
             return { action: 'deny' };
         } else {
-            // Open external links in the default browser
             shell.openExternal(url);
             return { action: 'deny' };
         }

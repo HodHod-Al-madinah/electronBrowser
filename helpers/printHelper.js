@@ -1,11 +1,11 @@
 
 const { BrowserWindow } = require('electron');
 
-// Function to print a window silently with specific options
-function printInvoiceWindow(invoiceWindow, scaleFactor) {
+ function printInvoiceWindow(invoiceWindow, scaleFactor) {
+  console.log("small");
   invoiceWindow.webContents.print({
-    silent: true,            // Silent printing, no dialog shown
-    printBackground: true,    // Include background graphics
+    silent: true,            
+    printBackground: true,   
     margins: {
       marginType: 'custom',
       top: 0,
@@ -18,15 +18,43 @@ function printInvoiceWindow(invoiceWindow, scaleFactor) {
       width: 80 * 1000,
       height: 297000
     },
-    scaleFactor: scaleFactor  // Apply the user-defined scale factor
+    scaleFactor: scaleFactor  
   }, (success, errorType) => {
     if (!success) {
       console.error('Print failed: ', errorType);
     } else {
       console.log('Print successful!');
     }
-    invoiceWindow.close();  // Close the invoice window after printing
+    invoiceWindow.close();  
   });
 }
 
-module.exports = { printInvoiceWindow };
+
+
+function printInvoiceWindowA4(invoiceWindow, scaleFactor) {
+  console.log("A4");
+  invoiceWindow.webContents.print({
+    silent: true,
+    printBackground: true,
+    margins: {
+      marginType: 'custom',
+      top: 0,
+      bottom: 0,
+      left: 0,
+      right: 0
+    },
+    landscape: false,
+    pageSize: 'A4',   
+    scaleFactor: scaleFactor
+  }, (success, errorType) => {
+    if (!success) {
+      console.error('A4 Print failed: ', errorType);
+    } else {
+      console.log('A4 Print successful!');
+    }
+    invoiceWindow.close();
+  });
+}
+
+ module.exports = { printInvoiceWindow, printInvoiceWindowA4 };
+

@@ -5,7 +5,7 @@ const { saveSettings } = require('../utils/settings');
 async function promptForScaleFactor(mainWindow, scaleFactor) {
   const options = {
     type: 'info',
-    buttons: ['92%', '90%', '88%', '85%', '83%', 'Cancel'],
+    buttons: ['92%', '90%', '88%', '85%', '83%','100%', 'Cancel'],
     defaultId: getScaleFactorButtonIndex(scaleFactor),  // Use current scaleFactor as default
     title: 'Set Scale Factor',
     message: `Current scale factor: ${scaleFactor}%`,
@@ -31,6 +31,9 @@ async function promptForScaleFactor(mainWindow, scaleFactor) {
     case 4:
       scaleFactor = 83;
       break;
+      case 5:
+        scaleFactor = 100;
+        break;
     case 5:
       return;  // Do nothing if Cancel is selected
   }
@@ -54,7 +57,8 @@ function getScaleFactorButtonIndex(scaleFactor) {
     case 88: return 2;
     case 85: return 3;
     case 83: return 4;
-    default: return 2;  // Default to 88%
+    case 100: return 5;
+    default: return 5;  // Default to 100%
   }
 }
 

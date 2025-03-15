@@ -1,35 +1,49 @@
 {
   "name": "mobi-cashier",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "main": "main.js",
+  "description": "A browser-based cashier application built with Electron",
+  "author": "Hammam Alageed",
+  "license": "ISC",
   "scripts": {
     "start": "electron .",
-    "build": "electron-builder"
+    "dist": "electron-builder",
+    "postinstall": "electron-builder install-app-deps"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "description": "",
+  "keywords": [
+    "electron",
+    "cashier",
+    "browser"
+  ],
   "devDependencies": {
     "electron": "^32.2.0",
-    "electron-builder": "^23.6.0",
+    "electron-builder": "^24.13.3",
     "electron-reload": "^2.0.0-alpha.1"
   },
   "dependencies": {
     "jquery": "^3.7.1",
     "moment": "^2.30.1",
     "moment-timezone": "^0.5.46",
-    "systeminformation": "^5.23.5"
+    "systeminformation": "^5.23.5",
+    "electron-updater": "^6.3.9"
+
   },
   "build": {
     "appId": "com.hodhod.browser",
-    "productName": "mobi-cashier",
+    "productName": "mobiCashier",
     "files": [
       "**/*"
     ],
     "win": {
       "target": "nsis",
       "icon": "mobi_logo.ico"
-    }
+    },
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "HodHod-Al-madinah",
+        "repo": "electronBrowser"
+      }
+    ]
   }
 }

@@ -1,4 +1,5 @@
 const { app, BrowserWindow, shell, Menu, ipcMain } = require('electron');
+const { autoUpdater } = require('electron-updater');
 
 const fs = require('fs');
 const path = require('path');
@@ -95,13 +96,57 @@ async function createWindow() {
             webSecurity: true,
             preload: path.join(__dirname, 'preload.js'),
         },
-        frame: true, 
-        title: 'mobiCashier', 
-        autoHideMenuBar: true   
+        frame: true,
+        title: 'mobiCashier',
+        autoHideMenuBar: true
     });
+
+
+    // Build the custom menu
+    const mainMenuTemplate = [
+        {
+            label: 'File',
+            submenu: [
+                {
+                    label: 'Exit',
+                    click: () => app.quit(),
+                },
+            ],
+        },
+        {
+            label: 'View',
+            submenu: [
+                {
+                    label: 'Scale',
+                    click: async () => {
+                        const newScaleFactor = await promptForScaleFactor(mainWindow, scaleFactor);
+                        if (newScaleFactor !== undefined) {
+                            scaleFactor = newScaleFactor; // Update global scaleFactor
+                            mainWindow.webContents.setZoomFactor(scaleFactor / 100); // Apply scale to main window
+                            console.log(`Scale factor applied: ${scaleFactor}%`);
+                        }
+                    },
+                },
+                {
+                    label: 'Reload',
+                    click: () => mainWindow.webContents.reload(),
+                },
+                {
+                    label: 'Toggle Fullscreen',
+                    accelerator: 'F11',
+                    click: () => mainWindow.setFullScreen(!mainWindow.isFullScreen()),
+                },
+            ],
+        },
+    ];
+
+    const mainMenu = Menu.buildFromTemplate(mainMenuTemplate);
+    mainWindow.setMenu(mainMenu);
 
     mainWindow.maximize();
     mainWindow.setSkipTaskbar(false);
+
+
 
     mainWindow.loadURL(`https://www.mobi-cashier.com/${dbName}/get/`);
 
@@ -252,15 +297,15 @@ async function createWindow() {
 
             const invoiceMenu = Menu.buildFromTemplate(invoiceMenuTemplate);
             invoiceWindow.setMenu(invoiceMenu);
-    
+
             invoiceWindow.webContents.on('did-finish-load', () => {
-                 if (url.includes('/invoice/a4')) {
+                if (url.includes('/invoice/a4')) {
                     printInvoiceWindowA4(invoiceWindow, scaleFactor);
                 } else {
                     printInvoiceWindow(invoiceWindow, scaleFactor);
                 }
             });
-    
+
             return { action: 'deny' };
         } else {
             shell.openExternal(url);
@@ -393,7 +438,46 @@ async function createWindow() {
 
 
 
-app.whenReady().then(createWindow);
+
+// AutoUpdater Event Handlers
+autoUpdater.on('checking-for-update', () => {
+    console.log('🔍 Checking for updates...');
+});
+
+autoUpdater.on('update-available', (info) => {
+    console.log(`✅ Update available: v${info.version}`);
+    mainWindow.webContents.send('update-available', info); // Notify renderer
+});
+
+autoUpdater.on('update-not-available', (info) => {
+    console.log('ℹ️ No update available.');
+});
+
+autoUpdater.on('download-progress', (progressObj) => {
+    const percent = Math.floor(progressObj.percent);
+    console.log(`⬇️ Download progress: ${percent}%`);
+    mainWindow.webContents.send('download-progress', percent); // Notify renderer
+});
+
+autoUpdater.on('update-downloaded', (info) => {
+    console.log(`🎉 Update downloaded: v${info.version}`);
+    mainWindow.webContents.send('update-downloaded', info); // Notify renderer
+    setTimeout(() => {
+        autoUpdater.quitAndInstall(); // Restart and install update after 2 seconds
+    }, 2000);
+});
+
+autoUpdater.on('error', (error) => {
+    console.error('❌ AutoUpdater error:', error);
+});
+
+
+app.whenReady().then(() => {
+    createWindow();
+    autoUpdater.checkForUpdatesAndNotify(); // Check for updates on startup
+});
+
+
 
 app.on('window-all-closed', () => {
     if (process.platform !== 'darwin') {
@@ -401,8 +485,13 @@ app.on('window-all-closed', () => {
     }
 });
 
+
 app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) {
         createWindow();
     }
+});
+
+ipcMain.on('restart-app', () => {
+    autoUpdater.quitAndInstall(); // Handle manual restart if needed
 });

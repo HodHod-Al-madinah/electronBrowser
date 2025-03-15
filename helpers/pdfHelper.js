@@ -7,7 +7,7 @@ function convertToPDF(mainWindow) {
   const pdfPath = path.join(__dirname, '../output.pdf');  // Path to save the PDF file
   
   mainWindow.webContents.printToPDF({
-    marginsType: 1,  // 1 = Custom margins
+    marginsType: 0,  
     printBackground: true,
     pageSize: 'A4',
   }).then(data => {

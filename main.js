@@ -96,53 +96,13 @@ async function createWindow() {
             webSecurity: true,
             preload: path.join(__dirname, 'preload.js'),
         },
-        frame: true,
-        title: 'mobiCashier',
-        autoHideMenuBar: true
+        frame: true, // Native frame with title bar and buttons
+        title: 'mobiCashier', // Set the window title
+        autoHideMenuBar: true // Hide the me   
     });
 
-
-    // Build the custom menu
-    const mainMenuTemplate = [
-        {
-            label: 'File',
-            submenu: [
-                {
-                    label: 'Exit',
-                    click: () => app.quit(),
-                },
-            ],
-        },
-        {
-            label: 'View',
-            submenu: [
-                {
-                    label: 'Scale',
-                    click: async () => {
-                        const newScaleFactor = await promptForScaleFactor(mainWindow, scaleFactor);
-                        if (newScaleFactor !== undefined) {
-                            scaleFactor = newScaleFactor; // Update global scaleFactor
-                            mainWindow.webContents.setZoomFactor(scaleFactor / 100); // Apply scale to main window
-                            console.log(`Scale factor applied: ${scaleFactor}%`);
-                        }
-                    },
-                },
-                {
-                    label: 'Reload',
-                    click: () => mainWindow.webContents.reload(),
-                },
-                {
-                    label: 'Toggle Fullscreen',
-                    accelerator: 'F11',
-                    click: () => mainWindow.setFullScreen(!mainWindow.isFullScreen()),
-                },
-            ],
-        },
-    ];
-
-    const mainMenu = Menu.buildFromTemplate(mainMenuTemplate);
-    mainWindow.setMenu(mainMenu);
-
+    mainWindow.maximize();
+    mainWindow.setSkipTaskbar(false);
     mainWindow.maximize();
     mainWindow.setSkipTaskbar(false);
 

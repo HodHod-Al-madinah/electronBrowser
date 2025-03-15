@@ -38,7 +38,17 @@ contextBridge.exposeInMainWorld('electron', {
 contextBridge.exposeInMainWorld('api', {
   // Listen for BIOS data sent by the main process
   onBiosData: (callback) => ipcRenderer.on('bios-data', (event, data) => callback(data)),
-  changeDbName: (newDbName) => ipcRenderer.send('change-db-name', newDbName),
+  
+  // Use ipcRenderer.invoke to handle promises and errors
+  changeDbName: (newDbName) => {
+    ipcRenderer.invoke('change-db-name', newDbName)
+      .then((result) => {
+        console.log(`Database updated: ${result}`);
+      })
+      .catch((err) => {
+        console.error('Error updating DB name:', err);
+      });
+  },
 
   // Listen for custom events
   onCustomEvent: (channel, callback) => {

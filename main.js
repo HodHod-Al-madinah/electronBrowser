@@ -398,7 +398,6 @@ async function createWindow() {
 
 
 
-
 // AutoUpdater Event Handlers
 autoUpdater.on('checking-for-update', () => {
     console.log('🔍 Checking for updates...');

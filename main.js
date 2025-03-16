@@ -1,5 +1,7 @@
 const { app, BrowserWindow, shell, Menu, ipcMain } = require('electron');
 const { autoUpdater } = require('electron-updater');
+const log = require("electron-log");
+
 
 const fs = require('fs');
 const path = require('path');
@@ -101,8 +103,6 @@ async function createWindow() {
         autoHideMenuBar: true // Hide the me   
     });
 
-    mainWindow.maximize();
-    mainWindow.setSkipTaskbar(false);
     mainWindow.maximize();
     mainWindow.setSkipTaskbar(false);
 
@@ -398,7 +398,18 @@ async function createWindow() {
 
 
 
-// AutoUpdater Event Handlers
+// Enable logging for AutoUpdater
+autoUpdater.logger = require("electron-log");
+autoUpdater.logger.transports.file.level = "info";
+
+// Check for updates when the app is ready
+app.whenReady().then(() => {
+    createWindow();
+    autoUpdater.forceDevUpdateConfig = true;
+    autoUpdater.checkForUpdatesAndNotify();
+});
+
+// Event listeners for auto-update
 autoUpdater.on('checking-for-update', () => {
     console.log('🔍 Checking for updates...');
 });
@@ -408,21 +419,22 @@ autoUpdater.on('update-available', (info) => {
     mainWindow.webContents.send('update-available', info); // Notify renderer
 });
 
-autoUpdater.on('update-not-available', (info) => {
+autoUpdater.on('update-not-available', () => {
     console.log('ℹ️ No update available.');
 });
 
 autoUpdater.on('download-progress', (progressObj) => {
     const percent = Math.floor(progressObj.percent);
     console.log(`⬇️ Download progress: ${percent}%`);
-    mainWindow.webContents.send('download-progress', percent); // Notify renderer
+    mainWindow.webContents.send('download-progress', percent);
 });
 
 autoUpdater.on('update-downloaded', (info) => {
     console.log(`🎉 Update downloaded: v${info.version}`);
-    mainWindow.webContents.send('update-downloaded', info); // Notify renderer
+    mainWindow.webContents.send('update-downloaded', info);
+    
     setTimeout(() => {
-        autoUpdater.quitAndInstall(); // Restart and install update after 2 seconds
+        autoUpdater.quitAndInstall(); // Restart app and install update
     }, 2000);
 });
 
@@ -430,11 +442,6 @@ autoUpdater.on('error', (error) => {
     console.error('❌ AutoUpdater error:', error);
 });
 
-
-app.whenReady().then(() => {
-    createWindow();
-    autoUpdater.checkForUpdatesAndNotify(); // Check for updates on startup
-});
 
 
 

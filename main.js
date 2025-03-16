@@ -398,25 +398,25 @@ async function createWindow() {
 
 
 
-// Enable logging for AutoUpdater
+
 autoUpdater.logger = require("electron-log");
 autoUpdater.logger.transports.file.level = "info";
 
-// Check for updates when the app is ready
+
 app.whenReady().then(() => {
     createWindow();
     autoUpdater.forceDevUpdateConfig = true;
     autoUpdater.checkForUpdatesAndNotify();
 });
 
-// Event listeners for auto-update
+
 autoUpdater.on('checking-for-update', () => {
     console.log('🔍 Checking for updates...');
 });
 
 autoUpdater.on('update-available', (info) => {
     console.log(`✅ Update available: v${info.version}`);
-    mainWindow.webContents.send('update-available', info); // Notify renderer
+    mainWindow.webContents.send('update-available', info); 
 });
 
 autoUpdater.on('update-not-available', () => {
@@ -431,11 +431,13 @@ autoUpdater.on('download-progress', (progressObj) => {
 
 autoUpdater.on('update-downloaded', (info) => {
     console.log(`🎉 Update downloaded: v${info.version}`);
-    mainWindow.webContents.send('update-downloaded', info);
-    
-    setTimeout(() => {
-        autoUpdater.quitAndInstall(); // Restart app and install update
-    }, 2000);
+    mainWindow.webContents.send('update-ready', info.version);
+});
+
+ipcMain.on('install-update', () => {
+ 
+        autoUpdater.quitAndInstall();
+   
 });
 
 autoUpdater.on('error', (error) => {
@@ -459,5 +461,5 @@ app.on('activate', () => {
 });
 
 ipcMain.on('restart-app', () => {
-    autoUpdater.quitAndInstall(); // Handle manual restart if needed
+    autoUpdater.quitAndInstall(); 
 });

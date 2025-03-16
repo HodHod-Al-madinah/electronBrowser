@@ -11,6 +11,10 @@ contextBridge.exposeInMainWorld('electron', {
   send: (channel, data) => {
     ipcRenderer.send(channel, data);
   },
+
+  onUpdateReady: (callback) => ipcRenderer.on('update-ready', (_, version) => callback(version)),
+  installUpdate: () => ipcRenderer.send('install-update'),
+
   // Close the current window
   closeWindow: () => ipcRenderer.send('close-window'),
 

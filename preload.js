@@ -1,6 +1,5 @@
 const { contextBridge, ipcRenderer } = require('electron');
 
-
 // Set global language
 window.language = 'en-US';
 
@@ -8,9 +7,16 @@ window.language = 'en-US';
 contextBridge.exposeInMainWorld('electron', {
   getCurrentUrl: () => ipcRenderer.invoke('get-current-url'),
 
-  send: (channel, data) => {
-    ipcRenderer.send(channel, data);
-  },
+  ipcRenderer: {
+    send: (channel, data) => {
+        // Whitelist allowed channels for security
+        const validChannels = ['minimize-window', 'maximize-window', 'close-window', 'change-db-name', 'toggle-fullscreen'];
+        if (validChannels.includes(channel)) {
+            ipcRenderer.send(channel, data);
+        }
+    }
+},
+  
 
   onUpdateReady: (callback) => ipcRenderer.on('update-ready', (_, version) => callback(version)),
   installUpdate: () => ipcRenderer.send('install-update'),

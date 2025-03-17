@@ -390,9 +390,7 @@ async function createWindow() {
     if (!hasReloadedOnce) {
         hasReloadedOnce = true;
         console.log('you are');
-
         mainWindow.webContents.reload()
-
     }
 }
 
@@ -435,15 +433,12 @@ autoUpdater.on('update-downloaded', (info) => {
 });
 
 ipcMain.on('install-update', () => {
- 
         autoUpdater.quitAndInstall();
-   
 });
 
 autoUpdater.on('error', (error) => {
     console.error('❌ AutoUpdater error:', error);
 });
-
 
 
 

@@ -1,21 +1,21 @@
-window.electron.onUpdateReady((version) => {
-    alert("Test Alert!");
+const { ipcRenderer } = require('electron');
 
-    if (Notification.permission === "granted") {
-        const notification = new Notification("Update Ready", {
-            body: `A new update (v${version}) is ready to install. Restarting in 20s!`,
-        });
-
-        // Optionally, allow manual update on click
-        notification.onclick = () => {
-            window.electron.installUpdate();
-        };
-    } else {
-        alert(`A new update (v${version}) is ready to install. Restarting in 20s!`);
-    }
+ipcRenderer.on('update-available', (event, info) => {
+    console.log(`🚀 Update available: v${info.version}`);
+    document.getElementById('update-banner').innerText = `New update v${info.version} available!`;
+    document.getElementById('update-banner').style.display = 'block';
 });
 
-// Request notification permission on page load
-if (Notification.permission !== "granted") {
-    Notification.requestPermission();
-}
+ipcRenderer.on('download-progress', (event, percent) => {
+    console.log(`⬇️ Downloading update... ${percent}%`);
+    document.getElementById('update-progress').innerText = `Downloading: ${percent}%`;
+});
+
+ipcRenderer.on('update-ready', (event, version) => {
+    console.log(`✅ Update v${version} downloaded! Ready to install.`);
+    document.getElementById('install-button').style.display = 'block';
+});
+
+document.getElementById('install-button').addEventListener('click', () => {
+    ipcRenderer.send('install-update');
+});

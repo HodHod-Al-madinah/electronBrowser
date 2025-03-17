@@ -618,27 +618,23 @@ autoUpdater.on('download-progress', (progressObj) => {
 });
 
 //
+
 autoUpdater.on('update-downloaded', (info) => {
     console.log(`🎉 Update downloaded: v${info.version}`);
     mainWindow.webContents.send('update-ready', info.version);
-    // Add dialog here to notify user
-    autoUpdater.on('update-downloaded', (info) => {
-        console.log(`🎉 Update downloaded: v${info.version}`);
-        mainWindow.webContents.send('update-ready', info.version);
-        // Show dialog with Arabic text
-        dialog.showMessageBox(mainWindow, {
-            type: 'info',
-            title: 'التحديث جاهز للتثبيت', // "Update Ready to Install"
-            message: `تم تنزيل إصدار جديد (${info.version}).`, // "A new version (${info.version}) has been downloaded."
-            detail: 'اضغط "موافق" للتثبيت الآن أو "إلغاء" للتثبيت لاحقًا.', // "Click OK to install now or Cancel to install later."
-            buttons: ['موافق', 'إلغاء'],
-            defaultId: 0,
-        }).then((response) => {
-            if (response.response === 0) { 
-                autoUpdater.quitAndInstall();
-            }
-            // إلغاء (Cancel, response.response === 1) does nothing
-        });
+    // Show dialog with Arabic text
+    dialog.showMessageBox(mainWindow, {
+        type: 'info',
+        title: 'التحديث جاهز للتثبيت', // "Update Ready to Install"
+        message: `تم تنزيل إصدار جديد (${info.version}).`, // "A new version (${info.version}) has been downloaded."
+        detail: 'اضغط "موافق" للتثبيت الآن أو "إلغاء" للتثبيت لاحقًا.', // "Click OK to install now or Cancel to install later."
+        buttons: ['موافق', 'إلغاء'], // ['OK', 'Cancel']
+        defaultId: 0,
+    }).then((response) => {
+        if (response.response === 0) { // موافق (OK)
+            autoUpdater.quitAndInstall();
+        }
+        // إلغاء (Cancel, response.response === 1) does nothing
     });
 });
 

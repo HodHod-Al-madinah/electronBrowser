@@ -11,6 +11,10 @@ contextBridge.exposeInMainWorld('electron', {
   send: (channel, data) => {
     ipcRenderer.send(channel, data);
   },
+
+  onUpdateReady: (callback) => ipcRenderer.on('update-ready', (_, version) => callback(version)),
+  installUpdate: () => ipcRenderer.send('install-update'),
+
   // Close the current window
   closeWindow: () => ipcRenderer.send('close-window'),
 
@@ -38,19 +42,18 @@ contextBridge.exposeInMainWorld('electron', {
 contextBridge.exposeInMainWorld('api', {
   // Listen for BIOS data sent by the main process
   onBiosData: (callback) => ipcRenderer.on('bios-data', (event, data) => callback(data)),
-  changeDbName: (newDbName) => ipcRenderer.send('change-db-name', newDbName),
-  minimizeWindow: () => {
-    console.log('Sending minimize-window IPC');
-    ipcRenderer.send('minimize-window');
-},
-maximizeWindow: () => {
-    console.log('Sending maximize-window IPC');
-    ipcRenderer.send('maximize-window');
-},
-closeWindow: () => {
-    console.log('Sending close-window IPC');
-    ipcRenderer.send('close-window');
-},
+  
+  // Use ipcRenderer.invoke to handle promises and errors
+  changeDbName: (newDbName) => {
+    ipcRenderer.invoke('change-db-name', newDbName)
+      .then((result) => {
+        console.log(`Database updated: ${result}`);
+      })
+      .catch((err) => {
+        console.error('Error updating DB name:', err);
+      });
+  },
+
   // Listen for custom events
   onCustomEvent: (channel, callback) => {
     ipcRenderer.on(channel, (event, data) => callback(data));

@@ -584,15 +584,12 @@ async function createWindow() {
 autoUpdater.logger = require("electron-log");
 autoUpdater.logger.transports.file.level = "info";
 
-
-
 //
 app.whenReady().then(() => {
     createWindow();
     autoUpdater.forceDevUpdateConfig = true;
     autoUpdater.checkForUpdatesAndNotify();
 });
-
 
 //
 autoUpdater.on('checking-for-update', () => {
@@ -618,24 +615,9 @@ autoUpdater.on('download-progress', (progressObj) => {
 });
 
 //
-
 autoUpdater.on('update-downloaded', (info) => {
     console.log(`🎉 Update downloaded: v${info.version}`);
     mainWindow.webContents.send('update-ready', info.version);
-    // Show dialog with Arabic text
-    dialog.showMessageBox(mainWindow, {
-        type: 'info',
-        title: 'التحديث جاهز للتثبيت', // "Update Ready to Install"
-        message: `تم تنزيل إصدار جديد (${info.version}).`, // "A new version (${info.version}) has been downloaded."
-        detail: 'اضغط "موافق" للتثبيت الآن أو "إلغاء" للتثبيت لاحقًا.', // "Click OK to install now or Cancel to install later."
-        buttons: ['موافق', 'إلغاء'], // ['OK', 'Cancel']
-        defaultId: 0,
-    }).then((response) => {
-        if (response.response === 0) { // موافق (OK)
-            autoUpdater.quitAndInstall();
-        }
-        // إلغاء (Cancel, response.response === 1) does nothing
-    });
 });
 
 //

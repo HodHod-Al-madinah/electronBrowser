@@ -16,6 +16,7 @@ const { buildInvoiceMenu } = require('./helpers/menuHelper');
 let mainWindow;
 let scaleFactor = 100;
 
+
 process.env.LANG = 'en-US';
 app.commandLine.appendSwitch('lang', 'en-US');
 
@@ -108,144 +109,170 @@ async function createWindow() {
     const motherboardSerial = systemInfo.motherboardSerial;
 
 
-    //  custom title bar with reload button
-    mainWindow.webContents.on('did-navigate', (event, url) => {
-        mainWindow.webContents.executeJavaScript(`
-            // Remove existing title bar if present
-            const existingTitleBar = document.getElementById('customTitleBar');
-            if (existingTitleBar) existingTitleBar.remove();
-    
-            // Create custom title bar
-            const titleBar = document.createElement('div');
-            titleBar.id = 'customTitleBar';
-            titleBar.style.position = 'fixed';
-            titleBar.style.top = '0';
-            titleBar.style.left = '0';
-            titleBar.style.right = '0';
-            titleBar.style.height = '25px';
-            titleBar.style.background = window.isFocused ? '#e5e5e5' : '#f0f0f0';
-            titleBar.style.display = 'flex';
-            titleBar.style.alignItems = 'center';
-            titleBar.style.justifyContent = 'space-between';
-            titleBar.style.zIndex = '1000';
-            titleBar.style.webkitAppRegion = 'drag'; 
-            titleBar.style.padding = '0'; 
-    
-
-            const buttons = document.createElement('div');
-            buttons.style.display = 'flex';
-            buttons.style.webkitAppRegion = 'no-drag'; // Prevent dragging from buttons
-            buttons.style.marginLeft = '0'; // Ensure flush with left edge
-    
-
-            const reloadBtn = document.createElement('button');
-            reloadBtn.id = 'reloadBtn';
-            reloadBtn.innerHTML = '↻';
-            reloadBtn.style.width = '25px';
-            reloadBtn.style.height = '25px';
-            reloadBtn.style.background = 'transparent';
-            reloadBtn.style.border = 'none';
-            reloadBtn.style.color = '#000000';
-            reloadBtn.style.fontSize = '18px';
-            reloadBtn.title = 'Reload';
-            reloadBtn.style.cursor = 'pointer';
-            reloadBtn.style.marginRight = '4px'; // Space between buttons (right instead of left)
-            reloadBtn.onmouseover = () => reloadBtn.style.background = '#d4d4d4';
-            reloadBtn.onmouseout = () => reloadBtn.style.background = 'transparent';
-            reloadBtn.onmousedown = () => reloadBtn.style.background = '#c0c0c0';
-            reloadBtn.onmouseup = () => reloadBtn.style.background = '#d4d4d4';
-            reloadBtn.onclick = () => window.location.reload();
-    
-
-            const minBtn = document.createElement('button');
-            minBtn.innerHTML = '−';
-            minBtn.style.width = '25px';
-            minBtn.style.height = '25px';
-            minBtn.style.background = 'transparent';
-            minBtn.style.border = 'none';
-            minBtn.style.color = '#000000';
-            minBtn.style.fontSize = '18px';
-            minBtn.style.cursor = 'pointer';
-            minBtn.title = 'Minimize';
-            minBtn.style.marginRight = '4px'; // Space between buttons
-            minBtn.onmouseover = () => minBtn.style.background = '#d4d4d4';
-            minBtn.onmouseout = () => minBtn.style.background = 'transparent';
-            minBtn.onmousedown = () => minBtn.style.background = '#c0c0c0';
-            minBtn.onmouseup = () => minBtn.style.background = '#d4d4d4';
-            minBtn.onclick = () => window.electron.ipcRenderer.send('minimize-window');
-    
-
-            const maxBtn = document.createElement('button');
-            maxBtn.innerHTML = '□';
-            maxBtn.style.width = '25px';
-            maxBtn.style.height = '25px';
-            maxBtn.style.background = 'transparent';
-            maxBtn.style.border = 'none';
-            maxBtn.style.color = '#000000';
-            maxBtn.style.fontSize = '16px';
-            maxBtn.style.cursor = 'pointer';
-            maxBtn.title = 'Maximize';
-            maxBtn.style.marginRight = '4px'; // Space between buttons
-            maxBtn.onmouseover = () => maxBtn.style.background = '#d4d4d4';
-            maxBtn.onmouseout = () => maxBtn.style.background = 'transparent';
-            maxBtn.onmousedown = () => maxBtn.style.background = '#c0c0c0';
-            maxBtn.onmouseup = () => maxBtn.style.background = '#d4d4d4';
-            maxBtn.onclick = () => window.electron.ipcRenderer.send('maximize-window');
-    
-            const closeBtn = document.createElement('button');
-            closeBtn.innerHTML = '✕';
-            closeBtn.style.width = '25px';
-            closeBtn.style.height = '25px';
-            closeBtn.style.background = 'transparent';
-            closeBtn.style.border = 'none';
-            closeBtn.style.color = '#000000';
-            closeBtn.style.fontSize = '14px';
-            closeBtn.style.cursor = 'pointer';
-             closeBtn.title = 'close';
-            closeBtn.style.marginLeft = '0'; // First button, no left margin
-            closeBtn.style.marginRight = '4px'; // Space to next button
-            closeBtn.onmouseover = () => closeBtn.style.background = '#e81123'; // Red on hover like Windows
-            closeBtn.onmouseout = () => closeBtn.style.background = 'transparent';
-            closeBtn.onmousedown = () => closeBtn.style.background = '#c42b1c';
-            closeBtn.onmouseup = () => closeBtn.style.background = '#e81123';
-            closeBtn.onclick = () => window.electron.ipcRenderer.send('close-window');
-    
-
-            buttons.appendChild(closeBtn);
-            buttons.appendChild(maxBtn);
-            buttons.appendChild(minBtn);
-            buttons.appendChild(reloadBtn);
-    
-
-            const title = document.createElement('div');
-            title.textContent = 'mobiCashier'; 
-            title.style.fontSize = '14px'; 
-            title.style.color = 'blue';          
-            title.style.FontWeigth = 'normal';           
-             title.style.marginLeft = '5px';
-            title.style.webkitAppRegion = 'drag';
-    
-            titleBar.appendChild(buttons); 
-            titleBar.appendChild(title); 
-    
-            document.body.style.paddingTop = '25px'; 
-            document.body.insertBefore(titleBar, document.body.firstChild);
-    
-            window.onfocus = () => {
-                titleBar.style.background = '#e5e5e5';
-            };
-            window.onblur = () => {
-                titleBar.style.background = '#f0f0f0';
-            };
-        `).catch(error => {
-            console.error("Error injecting custom title bar:", error);
-        });
+    ipcMain.handle('prompt-scale-factor', async () => {
+        scaleFactor = await promptForScaleFactor(mainWindow, scaleFactor);
+        return scaleFactor;
     });
 
 
 
+    //  custom title bar with reload button
+    mainWindow.webContents.on('did-navigate', (event, url) => {
+        mainWindow.webContents.executeJavaScript(`
+        // Remove existing title bar if present
+        const existingTitleBar = document.getElementById('customTitleBar');
+        if (existingTitleBar) existingTitleBar.remove();
 
+        // Create custom title bar
+        const titleBar = document.createElement('div');
+        titleBar.id = 'customTitleBar';
+        titleBar.style.position = 'fixed';
+        titleBar.style.top = '0';
+        titleBar.style.left = '0';
+        titleBar.style.right = '0';
+        titleBar.style.height = '25px';
+        titleBar.style.background = window.isFocused ? '#e5e5e5' : '#f0f0f0';
+        titleBar.style.display = 'flex';
+        titleBar.style.alignItems = 'center';
+        titleBar.style.justifyContent = 'space-between';
+        titleBar.style.zIndex = '1000';
+        titleBar.style.webkitAppRegion = 'drag';
+        titleBar.style.padding = '0';
 
+        const buttons = document.createElement('div');
+        buttons.style.display = 'flex';
+        buttons.style.webkitAppRegion = 'no-drag';
+        buttons.style.marginLeft = '0';
+
+        // Printer button
+        const printerBtn = document.createElement('button');
+        printerBtn.innerHTML = '🖨️';
+        printerBtn.style.width = '25px';
+        printerBtn.style.height = '25px';
+        printerBtn.style.background = 'transparent';
+        printerBtn.style.border = 'none';
+        printerBtn.style.color = '#000000';
+        printerBtn.style.fontSize = '12px';
+        printerBtn.style.cursor = 'pointer';
+        printerBtn.style.marginRight = '12px';
+        printerBtn.title = 'Set Scale Factor';
+        printerBtn.onmouseover = () => printerBtn.style.background = '#d4d4d4';
+        printerBtn.onmouseout = () => printerBtn.style.background = 'transparent';
+        printerBtn.onmousedown = () => printerBtn.style.background = '#c0c0c0';
+        printerBtn.onmouseup = () => printerBtn.style.background = '#d4d4d4';
+        printerBtn.onclick = () => window.electron.ipcRenderer.invoke('prompt-scale-factor');
+
+        // Reload button
+        const reloadBtn = document.createElement('button');
+        reloadBtn.id = 'reloadBtn';
+        reloadBtn.innerHTML = '↻';
+        reloadBtn.style.width = '25px';
+        reloadBtn.style.height = '25px';
+        reloadBtn.style.background = 'transparent';
+        reloadBtn.style.border = 'none';
+        reloadBtn.style.color = '#000000';
+        reloadBtn.style.fontSize = '18px';
+        reloadBtn.title = 'Reload';
+        reloadBtn.style.cursor = 'pointer';
+        reloadBtn.style.marginRight = '4px';
+        reloadBtn.onmouseover = () => reloadBtn.style.background = '#d4d4d4';
+        reloadBtn.onmouseout = () => reloadBtn.style.background = 'transparent';
+        reloadBtn.onmousedown = () => reloadBtn.style.background = '#c0c0c0';
+        reloadBtn.onmouseup = () => reloadBtn.style.background = '#d4d4d4';
+        reloadBtn.onclick = () => window.location.reload();
+
+        // Minimize button
+        const minBtn = document.createElement('button');
+        minBtn.innerHTML = '−';
+        minBtn.style.width = '25px';
+        minBtn.style.height = '25px';
+        minBtn.style.background = 'transparent';
+        minBtn.style.border = 'none';
+        minBtn.style.color = '#000000';
+        minBtn.style.fontSize = '18px';
+        minBtn.style.cursor = 'pointer';
+        minBtn.title = 'Minimize';
+        minBtn.style.marginRight = '4px';
+        minBtn.onmouseover = () => minBtn.style.background = '#d4d4d4';
+        minBtn.onmouseout = () => minBtn.style.background = 'transparent';
+        minBtn.onmousedown = () => minBtn.style.background = '#c0c0c0';
+        minBtn.onmouseup = () => minBtn.style.background = '#d4d4d4';
+        minBtn.onclick = () => window.electron.ipcRenderer.send('minimize-window');
+
+        // Maximize/Restore button
+        const maxBtn = document.createElement('button');
+        maxBtn.innerHTML = '□';
+        maxBtn.style.width = '25px';
+        maxBtn.style.height = '25px';
+        maxBtn.style.background = 'transparent';
+        maxBtn.style.border = 'none';
+        maxBtn.style.color = '#000000';
+        maxBtn.style.fontSize = '16px';
+        maxBtn.style.cursor = 'pointer';
+        maxBtn.title = 'Maximize';
+        maxBtn.style.marginRight = '4px';
+        maxBtn.onmouseover = () => maxBtn.style.background = '#d4d4d4';
+        maxBtn.onmouseout = () => maxBtn.style.background = 'transparent';
+        maxBtn.onmousedown = () => maxBtn.style.background = '#c0c0c0';
+        maxBtn.onmouseup = () => maxBtn.style.background = '#d4d4d4';
+        maxBtn.onclick = () => window.electron.ipcRenderer.send('maximize-window');
+
+        // Close button
+        const closeBtn = document.createElement('button');
+        closeBtn.innerHTML = '✕';
+        closeBtn.style.width = '25px';
+        closeBtn.style.height = '25px';
+        closeBtn.style.background = 'transparent';
+        closeBtn.style.border = 'none';
+        closeBtn.style.color = '#000000';
+        closeBtn.style.fontSize = '14px';
+        closeBtn.style.cursor = 'pointer';
+        closeBtn.title = 'Close';
+        closeBtn.style.marginLeft = '0';
+        closeBtn.style.marginRight = '4px';
+        closeBtn.onmouseover = () => closeBtn.style.background = '#e81123';
+        closeBtn.onmouseout = () => closeBtn.style.background = 'transparent';
+        closeBtn.onmousedown = () => closeBtn.style.background = '#c42b1c';
+        closeBtn.onmouseup = () => closeBtn.style.background = '#e81123';
+        closeBtn.onclick = () => window.electron.ipcRenderer.send('close-window');
+
+        // Append buttons (left to right: close, max, min, reload, printer)
+        buttons.appendChild(closeBtn);
+        buttons.appendChild(maxBtn);
+        buttons.appendChild(minBtn);
+        buttons.appendChild(reloadBtn);
+        buttons.appendChild(printerBtn);
+
+        // Title (on the right)
+        const title = document.createElement('div');
+        title.textContent = 'mobiCashier';
+        title.style.fontSize = '14px';
+        title.style.color = 'blue';
+        title.style.fontWeight = 'normal'; // Corrected typo: FontWeigth -> fontWeight
+        title.style.marginLeft = '5px'; // Should this be marginRight for right-side?
+        title.style.webkitAppRegion = 'drag';
+
+        // Assemble title bar
+        titleBar.appendChild(buttons);
+        titleBar.appendChild(title);
+
+        // Adjust body to prevent scrollbar
+        document.body.style.paddingTop = '25px';
+        document.body.style.height = 'calc(100vh - 25px)'; // Adjust height to fit viewport
+        document.body.style.overflowY = 'auto'; // Allow content scrolling if needed
+        document.body.insertBefore(titleBar, document.body.firstChild);
+
+        // Sync with window focus
+        window.onfocus = () => {
+            titleBar.style.background = '#e5e5e5';
+        };
+        window.onblur = () => {
+            titleBar.style.background = '#f0f0f0';
+        };
+    `).catch(error => {
+            console.error("Error injecting custom title bar:", error);
+        });
+    });
 
 
 
@@ -557,12 +584,15 @@ async function createWindow() {
 autoUpdater.logger = require("electron-log");
 autoUpdater.logger.transports.file.level = "info";
 
+
+
 //
 app.whenReady().then(() => {
     createWindow();
     autoUpdater.forceDevUpdateConfig = true;
     autoUpdater.checkForUpdatesAndNotify();
 });
+
 
 //
 autoUpdater.on('checking-for-update', () => {
@@ -591,6 +621,25 @@ autoUpdater.on('download-progress', (progressObj) => {
 autoUpdater.on('update-downloaded', (info) => {
     console.log(`🎉 Update downloaded: v${info.version}`);
     mainWindow.webContents.send('update-ready', info.version);
+    // Add dialog here to notify user
+    autoUpdater.on('update-downloaded', (info) => {
+        console.log(`🎉 Update downloaded: v${info.version}`);
+        mainWindow.webContents.send('update-ready', info.version);
+        // Show dialog with Arabic text
+        dialog.showMessageBox(mainWindow, {
+            type: 'info',
+            title: 'التحديث جاهز للتثبيت', // "Update Ready to Install"
+            message: `تم تنزيل إصدار جديد (${info.version}).`, // "A new version (${info.version}) has been downloaded."
+            detail: 'اضغط "موافق" للتثبيت الآن أو "إلغاء" للتثبيت لاحقًا.', // "Click OK to install now or Cancel to install later."
+            buttons: ['موافق', 'إلغاء'],
+            defaultId: 0,
+        }).then((response) => {
+            if (response.response === 0) { 
+                autoUpdater.quitAndInstall();
+            }
+            // إلغاء (Cancel, response.response === 1) does nothing
+        });
+    });
 });
 
 //

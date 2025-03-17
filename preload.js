@@ -9,14 +9,20 @@ contextBridge.exposeInMainWorld('electron', {
 
   ipcRenderer: {
     send: (channel, data) => {
-        // Whitelist allowed channels for security
-        const validChannels = ['minimize-window', 'maximize-window', 'close-window', 'change-db-name', 'toggle-fullscreen'];
-        if (validChannels.includes(channel)) {
-            ipcRenderer.send(channel, data);
-        }
-    }
-},
-  
+      // Whitelist allowed channels for security
+      const validChannels = ['minimize-window', 'maximize-window', 'close-window', 'change-db-name', 'toggle-fullscreen'];
+      if (validChannels.includes(channel)) {
+        ipcRenderer.send(channel, data);
+      }
+    },
+    invoke: (channel) => {
+      const validChannels = ['prompt-scale-factor'];
+      if (validChannels.includes(channel)) {
+        return ipcRenderer.invoke(channel);
+      }
+    },
+  },
+
 
   onUpdateReady: (callback) => ipcRenderer.on('update-ready', (_, version) => callback(version)),
   installUpdate: () => ipcRenderer.send('install-update'),
@@ -48,7 +54,7 @@ contextBridge.exposeInMainWorld('electron', {
 contextBridge.exposeInMainWorld('api', {
   // Listen for BIOS data sent by the main process
   onBiosData: (callback) => ipcRenderer.on('bios-data', (event, data) => callback(data)),
-  
+
   // Use ipcRenderer.invoke to handle promises and errors
   changeDbName: (newDbName) => {
     ipcRenderer.invoke('change-db-name', newDbName)

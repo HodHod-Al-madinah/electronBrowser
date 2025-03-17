@@ -1,4 +1,7 @@
 const { app, BrowserWindow, shell, Menu, ipcMain } = require('electron');
+const { autoUpdater } = require('electron-updater');
+const log = require("electron-log");
+
 
 const fs = require('fs');
 const path = require('path');
@@ -29,7 +32,7 @@ ipcMain.on('change-db-name', (event, newDbName) => {
             console.log(`✅ Database updated to ${newDbName}`);
             dbName = newDbName;
             if (mainWindow) {
-                mainWindow.loadURL(`http://127.0.0.1:8000/${dbName}/get/`);
+                mainWindow.loadURL(`https://www.mobi-cashier.com/${dbName}/get/`);
             }
         } catch (error) {
             console.error("❌ Error updating database name:", error);
@@ -103,7 +106,9 @@ async function createWindow() {
     mainWindow.maximize();
     mainWindow.setSkipTaskbar(false);
 
-    mainWindow.loadURL(`http://127.0.0.1:8000/${dbName}/get/`);
+
+
+    mainWindow.loadURL(`https://www.mobi-cashier.com/${dbName}/get/`);
 
 
     const systemInfo = await getWMICInfo();
@@ -208,7 +213,7 @@ async function createWindow() {
 
 
     mainWindow.webContents.setWindowOpenHandler(({ url }) => {
-        const key = url.includes('http://127.0.0.1:8000/invoice-print');
+        const key = url.includes('https://www.mobi-cashier.com/invoice-print');
 
         if (key) {
             const printWindow = new BrowserWindow({
@@ -229,8 +234,8 @@ async function createWindow() {
 
             return { action: 'deny' };
         } else if (
-            url.startsWith('http://127.0.0.1:8000/invoice') ||
-            url.includes('http://127.0.0.1:8000/period-report-htm')
+            url.startsWith('https://www.mobi-cashier.com/invoice') ||
+            url.includes('https://www.mobi-cashier.com/period-report-htm')
         ) {
             const invoiceWindow = new BrowserWindow({
                 show: false,
@@ -252,15 +257,15 @@ async function createWindow() {
 
             const invoiceMenu = Menu.buildFromTemplate(invoiceMenuTemplate);
             invoiceWindow.setMenu(invoiceMenu);
-    
+
             invoiceWindow.webContents.on('did-finish-load', () => {
-                 if (url.includes('/invoice/a4')) {
+                if (url.includes('/invoice/a4')) {
                     printInvoiceWindowA4(invoiceWindow, scaleFactor);
                 } else {
                     printInvoiceWindow(invoiceWindow, scaleFactor);
                 }
             });
-    
+
             return { action: 'deny' };
         } else {
             shell.openExternal(url);
@@ -324,7 +329,7 @@ async function createWindow() {
             if (dbName !== loadStoredDb()) {
                 console.log("🔄 Redirecting to last saved DB...");
                 dbName = loadStoredDb();
-                mainWindow.loadURL(`http://127.0.0.1:8000/${dbName}/get/`);
+                mainWindow.loadURL(`https://www.mobi-cashier.com/${dbName}/get/`);
             }
         }
     });
@@ -385,15 +390,57 @@ async function createWindow() {
     if (!hasReloadedOnce) {
         hasReloadedOnce = true;
         console.log('you are');
-
         mainWindow.webContents.reload()
-
     }
 }
 
 
 
-app.whenReady().then(createWindow);
+
+autoUpdater.logger = require("electron-log");
+autoUpdater.logger.transports.file.level = "info";
+
+
+app.whenReady().then(() => {
+    createWindow();
+    autoUpdater.forceDevUpdateConfig = true;
+    autoUpdater.checkForUpdatesAndNotify();
+});
+
+
+autoUpdater.on('checking-for-update', () => {
+    console.log('🔍 Checking for updates...');
+});
+
+autoUpdater.on('update-available', (info) => {
+    console.log(`✅ Update available: v${info.version}`);
+    mainWindow.webContents.send('update-available', info); 
+});
+
+autoUpdater.on('update-not-available', () => {
+    console.log('ℹ️ No update available.');
+});
+
+autoUpdater.on('download-progress', (progressObj) => {
+    const percent = Math.floor(progressObj.percent);
+    console.log(`⬇️ Download progress: ${percent}%`);
+    mainWindow.webContents.send('download-progress', percent);
+});
+
+autoUpdater.on('update-downloaded', (info) => {
+    console.log(`🎉 Update downloaded: v${info.version}`);
+    mainWindow.webContents.send('update-ready', info.version);
+});
+
+ipcMain.on('install-update', () => {
+        autoUpdater.quitAndInstall();
+});
+
+autoUpdater.on('error', (error) => {
+    console.error('❌ AutoUpdater error:', error);
+});
+
+
 
 app.on('window-all-closed', () => {
     if (process.platform !== 'darwin') {
@@ -401,8 +448,13 @@ app.on('window-all-closed', () => {
     }
 });
 
+
 app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) {
         createWindow();
     }
+});
+
+ipcMain.on('restart-app', () => {
+    autoUpdater.quitAndInstall(); 
 });

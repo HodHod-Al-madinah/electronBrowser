@@ -68,15 +68,24 @@ function loadStoredDb() {
 function loadSettings() {
     try {
         const settingsFile = path.join(app.getPath('userData'), 'settings.json');
+        
+        if (!fs.existsSync(settingsFile)) {
+            console.log('⚠️ No settings.json found. Creating a new one with defaults.');
+            const defaultSettings = { scaleFactor: 100 };
+            fs.writeFileSync(settingsFile, JSON.stringify(defaultSettings, null, 2), 'utf8');
+        }
+
         const data = fs.readFileSync(settingsFile);
         const settings = JSON.parse(data);
+
         if (settings.scaleFactor) {
             scaleFactor = settings.scaleFactor;
         }
     } catch (error) {
-        console.log('No settings file found, using defaults.');
+        console.error('❌ Error loading settings:', error);
     }
 }
+
 
 let hasReloadedOnce = false;
 
@@ -120,10 +129,12 @@ async function createWindow() {
     mainWindow.webContents.on('did-navigate', (event, url) => {
         mainWindow.webContents.executeJavaScript(`
         // Remove existing title bar if present
-        const existingTitleBar = document.getElementById('customTitleBar');
-        if (existingTitleBar) existingTitleBar.remove();
-
-        // Create custom title bar
+        let existingTitleBar = document.getElementById('customTitleBar');
+        if (existingTitleBar) {
+            existingTitleBar.remove();
+        }
+        
+          // Proceed with creating the new title bar
         const titleBar = document.createElement('div');
         titleBar.id = 'customTitleBar';
         titleBar.style.position = 'fixed';
@@ -260,6 +271,7 @@ async function createWindow() {
         document.body.style.paddingTop = '25px';
         document.body.style.height = 'calc(100vh - 25px)'; // Adjust height to fit viewport
         document.body.style.overflowY = 'auto'; // Allow content scrolling if needed
+
         document.body.insertBefore(titleBar, document.body.firstChild);
 
         // Sync with window focus

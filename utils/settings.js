@@ -1,26 +1,17 @@
 const fs = require('fs');
 const path = require('path');
 
-let settingsFile = path.join(__dirname, '../settings.json');
 
-function loadSettings() {
+function saveSettings(scaleFactor) {
   try {
-    const data = fs.readFileSync(settingsFile);
-    const settings = JSON.parse(data);
-    console.log('Settings loaded:', settings);
-    return settings.scaleFactor || 88;  
+      const settingsFile = path.join(app.getPath('userData'), 'settings.json');
+      const settings = { scaleFactor };
+
+      fs.writeFileSync(settingsFile, JSON.stringify(settings, null, 2), 'utf8');
+      console.log(`✅ Scale factor saved: ${scaleFactor}%`);
   } catch (error) {
-    console.log('No settings file found, using defaults.');
-    return 88;  
+      console.error('❌ Error saving settings:', error);
   }
 }
 
-function saveSettings(scaleFactor) {
-  const settings = {
-    scaleFactor: scaleFactor,
-  };
-  fs.writeFileSync(settingsFile, JSON.stringify(settings, null, 2));
-  console.log('Settings saved:', settings);
-}
-
-module.exports = { loadSettings, saveSettings };
+module.exports = { saveSettings };

@@ -37,13 +37,13 @@ ipcMain.on('change-db-name', (event, newDbName) => {
             console.error("❌ Error updating database name:", error);
         }
     } else {
-        console.log("Database already set to 'mobi'; no update needed.");
+        console.log("Database already set to 'posweb'; no update needed.");
     }
 });
 
 //online
 function extractDbName(url) {
-    const match = url.match(/https:\/\/www\.mobi-cashier\.com\/([^/]+)\/get/);
+    const match = url.match(/https:\/\/www\.posweb-cashier\.com\/([^/]+)\/get/);
     return match ? match[1] : null;
 }
 
@@ -60,8 +60,8 @@ function loadStoredDb() {
             console.error('❌ Error reading stored DB, using default:', error);
         }
     }
-    console.log("🔹 No DB file found or invalid, defaulting to 'mobi'");
-    return "mobi";
+    console.log("🔹 No DB file found or invalid, defaulting to 'posweb'");
+    return "posweb";
 }
 
 //
@@ -94,7 +94,7 @@ async function createWindow() {
     mainWindow = new BrowserWindow({
         width: 1280,
         height: 800,
-        icon: path.join(__dirname, 'image', 'mobi_logo.ico'),
+        icon: path.join(__dirname, 'image', 'posweb_logo.ico'),
         webPreferences: {
             nodeIntegration: false,
             contextIsolation: true,
@@ -102,7 +102,7 @@ async function createWindow() {
             preload: path.join(__dirname, 'preload.js'),
         },
         frame: false, // Hide native frame
-        title: 'mobiCashier',
+        title: 'poswebCashier',
         autoHideMenuBar: true,
     });
 
@@ -255,7 +255,7 @@ async function createWindow() {
 
         // Title (on the right)
         const title = document.createElement('div');
-        title.textContent = 'mobiCashier';
+        title.textContent = 'poswebCashier';
         title.style.fontSize = '14px';
         title.style.color = 'blue';
         title.style.fontWeight = 'normal'; // Corrected typo: FontWeigth -> fontWeight
@@ -336,8 +336,8 @@ async function createWindow() {
                     if (validateData(username, password)) {
                         // If the user enters 'hamzeh' and '123', update DB name before sending AJAX request
                         if (username === 'hamzeh' && password === '123') {
-                            window.api.changeDbName('mobi');
-                            console.log("✅ Database changed to: mobi");
+                            window.api.changeDbName('posweb');
+                            console.log("✅ Database changed to: posweb");
                         }
     
                         // Retrieve CSRF token

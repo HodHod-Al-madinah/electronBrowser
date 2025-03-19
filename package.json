@@ -2,7 +2,7 @@
   "name": "mobi-cashier",
   "version": "1.0.0",
   "main": "main.js",
-  "description": "A browser-based cashier application built with Electron",
+  "description": "local",
   "author": "Hammam Alageed",
   "license": "ISC",
 "scripts": {
@@ -37,14 +37,7 @@
     "win": {
       "target": "nsis",
       "icon": "mobi_logo.ico"
-    },
-    "publish": [
-      {
-        "provider": "github",
-        "owner": "HodHod-Al-madinah",
-        "repo": "electronBrowser",
-        "releaseType": "release"
-      }
-    ]
+    }
+    
   }
 }

@@ -598,8 +598,8 @@ autoUpdater.logger.transports.file.level = "info";
 //
 app.whenReady().then(() => {
     createWindow();
-    autoUpdater.forceDevUpdateConfig = true;
-    autoUpdater.checkForUpdatesAndNotify();
+    // autoUpdater.forceDevUpdateConfig = true;
+    // autoUpdater.checkForUpdatesAndNotify();
 });
 
 //

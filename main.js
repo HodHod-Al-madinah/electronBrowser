@@ -10,7 +10,68 @@ const { promptForScaleFactor } = require('./helpers/scaleHelper');
 const { printInvoiceWindow } = require('./helpers/printHelper');
 const { printInvoiceWindowA4 } = require('./helpers/printHelper');
 const { buildInvoiceMenu } = require('./helpers/menuHelper');
+const moment = require('moment-timezone');
 
+
+
+
+
+function checkDateTime() {
+    try {
+        console.log('🔍 Checking system date and time...');
+        log.info('🔍 Checking system date and time...');
+
+        const systemTimeUTC = new Date().toISOString();
+        const riyadhTimeUTC = moment().tz('Asia/Riyadh').utc().format();
+
+        console.log(`📅 System UTC Time: ${systemTimeUTC}`);
+        console.log(`📅 Riyadh UTC Time: ${riyadhTimeUTC}`);
+        log.info(`📅 System UTC Time: ${systemTimeUTC}`);
+        log.info(`📅 Riyadh UTC Time: ${riyadhTimeUTC}`);
+
+        const systemTime = new Date(systemTimeUTC).getTime();
+        const riyadhTime = new Date(riyadhTimeUTC).getTime();
+
+        console.log(`🕰 System Time (ms): ${systemTime}`);
+        console.log(`🕰 Riyadh Time (ms): ${riyadhTime}`);
+        log.info(`🕰 System Time (ms): ${systemTime}`);
+        log.info(`🕰 Riyadh Time (ms): ${riyadhTime}`);
+
+        const timeDifference = Math.abs(riyadhTime - systemTime) / 1000;
+
+        console.log(`⏳ Time Difference (seconds): ${timeDifference}`);
+        log.info(`⏳ Time Difference (seconds): ${timeDifference}`);
+
+        if (timeDifference > 60) {  
+            console.error('❌ System Date/Time is incorrect! Please adjust it to the correct Riyadh time.');
+            log.error('❌ System Date/Time is incorrect! Please adjust it to the correct Riyadh time.');
+
+            app.whenReady().then(() => {
+                const { dialog } = require('electron');
+                dialog.showMessageBoxSync({
+                    type: 'error',
+                    title: 'Incorrect Date/Time',
+                    message: 'Your system date and time are incorrect. Please adjust them to Riyadh time (GMT+3) before using the app.',
+                    buttons: ['OK']
+                });
+
+                console.log('🔴 Exiting the app due to incorrect date/time...');
+                log.error('🔴 Exiting the app due to incorrect date/time...');
+                
+                setTimeout(() => {
+                    app.quit();
+                    process.exit(1); // Ensure the app force quits
+                }, 2000);
+            });
+        } else {
+            console.log('✅ System Date/Time is correct.');
+            log.info('✅ System Date/Time is correct.');
+        }
+    } catch (error) {
+        console.error('🚨 Error in checkDateTime function:', error);
+        log.error('🚨 Error in checkDateTime function:', error);
+    }
+}
 
 
 let mainWindow;
@@ -68,7 +129,7 @@ function loadStoredDb() {
 function loadSettings() {
     try {
         const settingsFile = path.join(app.getPath('userData'), 'settings.json');
-        
+
         if (!fs.existsSync(settingsFile)) {
             console.log('⚠️ No settings.json found. Creating a new one with defaults.');
             const defaultSettings = { scaleFactor: 100 };
@@ -86,32 +147,7 @@ function loadSettings() {
     }
 }
 
-function checkDateTime() {
-    const systemTimeUTC = new Date().toISOString(); 
-    const riyadhTimeUTC = moment().tz('Asia/Riyadh').utc().format();  C
 
-     const systemTime = new Date(systemTimeUTC).getTime();
-    const riyadhTime = new Date(riyadhTimeUTC).getTime();
-
-     const timeDifference = Math.abs(riyadhTime - systemTime) / 1000;
-
-    if (timeDifference > 60) {   
-        console.error('❌ System Date/Time is incorrect! Please adjust it to the correct Riyadh time.');
-
-         app.whenReady().then(() => {
-            const { dialog } = require('electron');
-            dialog.showMessageBoxSync({
-                type: 'error',
-                title: 'Incorrect Date/Time',
-                message: 'Your system date and time are incorrect. Please adjust them to Riyadh time (GMT+3) before using the app.',
-                buttons: ['OK']
-            });
-            app.quit();
-        });
-    } else {
-        console.log('✅ System Date/Time is correct.');
-    }
-}
 
 let hasReloadedOnce = false;
 

@@ -6,7 +6,7 @@
   "author": "Hammam Alageed",
   "license": "ISC",
 "scripts": {
-  "start": "electron .",
+  "start": "electron . --enable-logging",
   "build": "electron-builder",
   "dist": "electron-builder --win"
 },

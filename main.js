@@ -10,6 +10,8 @@ const { promptForScaleFactor } = require('./helpers/scaleHelper');
 const { printInvoiceWindow } = require('./helpers/printHelper');
 const { printInvoiceWindowA4 } = require('./helpers/printHelper');
 const { buildInvoiceMenu } = require('./helpers/menuHelper');
+const moment = require('moment-timezone');
+
 
 
 
@@ -62,6 +64,38 @@ function loadStoredDb() {
     }
     console.log("🔹 No DB file found or invalid, defaulting to 'posweb'");
     return "posweb";
+}
+
+
+
+function checkDateTime() {
+    const systemTimeUTC = new Date().toISOString(); // Convert to UTC time
+    const riyadhTimeUTC = moment().tz('Asia/Riyadh').utc().format(); // Convert Riyadh time to UTC
+
+    // Convert to timestamps
+    const systemTime = new Date(systemTimeUTC).getTime();
+    const riyadhTime = new Date(riyadhTimeUTC).getTime();
+
+    // Calculate time difference in seconds
+    const timeDifference = Math.abs(riyadhTime - systemTime) / 1000;
+
+    if (timeDifference > 60) { // More than 1-minute difference
+        console.error('❌ System Date/Time is incorrect! Please adjust it to the correct Riyadh time.');
+
+        // Show an Electron message box before quitting
+        app.whenReady().then(() => {
+            const { dialog } = require('electron');
+            dialog.showMessageBoxSync({
+                type: 'error',
+                title: 'Incorrect Date/Time',
+                message: 'Your system date and time are incorrect. Please adjust them to Riyadh time (GMT+3) before using the app.',
+                buttons: ['OK']
+            });
+            app.quit();
+        });
+    } else {
+        console.log('✅ System Date/Time is correct.');
+    }
 }
 
 //
@@ -594,6 +628,9 @@ async function createWindow() {
 //
 autoUpdater.logger = require("electron-log");
 autoUpdater.logger.transports.file.level = "info";
+
+
+checkDateTime();
 
 //
 app.whenReady().then(() => {

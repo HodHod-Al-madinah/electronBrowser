@@ -19,3 +19,13 @@ ipcRenderer.on('update-ready', (event, version) => {
 document.getElementById('install-button').addEventListener('click', () => {
     ipcRenderer.send('install-update');
 });
+
+
+const updateOnlineStatus = () => {
+    document.getElementById('status').innerHTML = navigator.onLine ? 'online' : 'offline'
+  }
+  
+  window.addEventListener('online', updateOnlineStatus)
+  window.addEventListener('offline', updateOnlineStatus)
+  
+  updateOnlineStatus()

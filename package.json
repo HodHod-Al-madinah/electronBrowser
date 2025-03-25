@@ -27,17 +27,25 @@
     "moment": "^2.30.1",
     "moment-timezone": "^0.5.46",
     "node-fetch": "^2.7.0",
+    "ntp-client": "^0.5.3",
     "systeminformation": "^5.23.5"
   },
   "build": {
     "appId": "com.hodhod.browser",
     "productName": "mobiCashier",
     "files": [
-      "**/*"
+      "main.js",
+      "preload.js",
+      "helpers/**/*",
+      "utils/**/*",
+      "image/**/*",
+      "node_modules/**/*",
+      "package.json"
     ],
     "win": {
       "target": "nsis",
-      "icon": "mobi_logo.ico"
+      "icon": "mobi_logo.ico",
+      "requestedExecutionLevel": "requireAdministrator"
     },
     "publish": [
       {

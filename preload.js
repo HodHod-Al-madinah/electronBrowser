@@ -1,73 +1,83 @@
 const { contextBridge, ipcRenderer } = require('electron');
 
-// Set global language
+// Language (global fallback, safe only in dev)
 window.language = 'en-US';
 
-// Use `contextBridge` to securely expose limited APIs
+// Secure contextBridge exposure
 contextBridge.exposeInMainWorld('electron', {
-  getCurrentUrl: () => ipcRenderer.invoke('get-current-url'),
-
   ipcRenderer: {
-    send: (channel, data) => {
-      // Whitelist allowed channels for security
-      const validChannels = ['minimize-window', 'maximize-window', 'close-window', 'change-db-name', 'toggle-fullscreen'];
+    // Safely send events to main process
+    send: (channel, ...args) => {
+      const validChannels = [
+        'minimize-window',
+        'maximize-window',
+        'close-window',
+        'change-db-name',
+        'toggle-fullscreen',
+        'install-update',
+        'set-scale-factor',
+        'toggle-devtools',
+      ];
       if (validChannels.includes(channel)) {
-        ipcRenderer.send(channel, data);
+        ipcRenderer.send(channel, ...args);
       }
     },
-    invoke: (channel) => {
-      const validChannels = ['prompt-scale-factor'];
+
+    // Safely invoke channels expecting a response
+    invoke: (channel, ...args) => {
+      const validChannels = [
+        'prompt-scale-factor',
+        'get-current-url',
+        'change-db-name',
+      ];
       if (validChannels.includes(channel)) {
-        return ipcRenderer.invoke(channel);
+        return ipcRenderer.invoke(channel, ...args);
       }
     },
+
+    // Listen for events from main
+    on: (channel, callback) => {
+      const validChannels = ['update-ready', 'download-progress', 'bios-data'];
+      if (validChannels.includes(channel)) {
+        ipcRenderer.on(channel, (event, ...args) => callback(...args));
+      }
+    },
+
+    // Remove all listeners
+    removeAllListeners: (channel) => {
+      ipcRenderer.removeAllListeners(channel);
+    }
   },
 
-
+  // Shortcuts for common events
   onUpdateReady: (callback) => ipcRenderer.on('update-ready', (_, version) => callback(version)),
+  onDownloadProgress: (callback) => ipcRenderer.on('download-progress', (_, percent) => callback(percent)),
   installUpdate: () => ipcRenderer.send('install-update'),
 
-  // Close the current window
   closeWindow: () => ipcRenderer.send('close-window'),
-
-  // Set scale factor for printing or UI adjustments
-  setScaleFactor: (scaleFactor) => ipcRenderer.send('set-scale-factor', scaleFactor),
-
-  // Toggle fullscreen mode
   toggleFullscreen: () => ipcRenderer.send('toggle-fullscreen'),
-
-  // Open DevTools
   toggleDevTools: () => ipcRenderer.send('toggle-devtools'),
-
-  // Send a custom event to the main process
-  sendEvent: (channel, data) => ipcRenderer.send(channel, data),
-
-  // Receive events from the main process
-  onEvent: (channel, callback) => {
-    ipcRenderer.on(channel, (event, ...args) => callback(...args));
-  },
-
-  // Remove listeners for a specific channel
-  removeAllListeners: (channel) => ipcRenderer.removeAllListeners(channel),
 });
 
+// Optional second namespace if needed
 contextBridge.exposeInMainWorld('api', {
-  // Listen for BIOS data sent by the main process
-  onBiosData: (callback) => ipcRenderer.on('bios-data', (event, data) => callback(data)),
+  onBiosData: (callback) => {
+    ipcRenderer.on('bios-data', (event, data) => callback(data));
+  },
 
-  // Use ipcRenderer.invoke to handle promises and errors
+  // DB change with built-in error handling
   changeDbName: (newDbName) => {
     ipcRenderer.invoke('change-db-name', newDbName)
       .then((result) => {
-        console.log(`Database updated: ${result}`);
+        console.log(`✅ Database changed to: ${result}`);
       })
       .catch((err) => {
-        console.error('Error updating DB name:', err);
+        console.error('❌ Failed to change DB:', err);
       });
   },
 
-  // Listen for custom events
+  // Catch-all custom listener
   onCustomEvent: (channel, callback) => {
     ipcRenderer.on(channel, (event, data) => callback(data));
-  },
+  }
 });

@@ -1,4 +1,4 @@
-const { app, BrowserWindow, shell, Menu, ipcMain } = require('electron');
+const { app, BrowserWindow, shell, Menu, ipcMain, dialog } = require('electron');
 const { autoUpdater } = require('electron-updater');
 const log = require("electron-log");
 const fs = require('fs');
@@ -10,46 +10,105 @@ const { promptForScaleFactor } = require('./helpers/scaleHelper');
 const { printInvoiceWindow } = require('./helpers/printHelper');
 const { printInvoiceWindowA4 } = require('./helpers/printHelper');
 const { buildInvoiceMenu } = require('./helpers/menuHelper');
+
+
+
+log.info('🚀 App started');
+
+
+
+
+
+
 const fetch = require('node-fetch');
+const { exec } = require('child_process');
+
+// Function to set system time on Windows
+function setSystemTime(newTime) {
+    log.info('⚙️ Executing command to set time...');
+
+    return new Promise((resolve, reject) => {
+        const dateStr = newTime.toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' });
+        const timeStr = newTime.toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' });
+
+        const command = `powershell -Command "Set-Date -Date '${dateStr} ${timeStr}'"`;
+        console.log("⏰ Setting system time with:", command);
+
+        exec(command, { windowsHide: true }, (error, stdout, stderr) => {
+            if (error) {
+                console.error(`❌ Error setting system time:`, stderr || error);
+                reject(error);
+            } else {
+                console.log(`✅ System time updated to: ${newTime}`);
+                resolve();
+            }
+        });
+    });
+}
+
+
+
+// Check if running as admin
+function isAdmin() {
+    try {
+        require('child_process').execSync('NET SESSION', { stdio: 'ignore' });
+        console.log("✅ Running as Admin");
+        return true;
+    } catch (e) {
+        console.log("❌ Not running as Admin");
+        return false;
+    }
+}
 
 
 
 async function checkDateTime() {
+    log.info('⏱ checkDateTime() started');
+
     try {
-        console.log('🔍 Checking actual time against system time...');
+        log.info("⏱ Checking system time...");
+
+        const systemTime = new Date();
         const response = await fetch('https://timeapi.io/api/Time/current/zone?timeZone=Asia/Riyadh');
         const data = await response.json();
-
-        const actualTime = new Date(data.datetime); 
-        const systemTime = new Date();           
+        const actualTime = new Date(data.dateTime);
 
         const diffInSeconds = Math.abs(actualTime - systemTime) / 1000;
+        log.info(`⏱ Time difference: ${diffInSeconds} seconds`);
 
-        console.log(`📅 System Time: ${systemTime}`);
-        console.log(`🌐 Actual Riyadh Time: ${actualTime}`);
-        console.log(`⏳ Difference in seconds: ${diffInSeconds}`);
+        if (diffInSeconds > 120) {
+            log.warn("⚠️ System time is wrong");
 
-        if (diffInSeconds > 120) {  
-            const { dialog } = require('electron');
-            dialog.showMessageBoxSync({
-                type: 'error',
-                title: 'Incorrect Date/Time',
-                message: 'يرجى ضبط وقت وتاريخ الجهاز للحصول على أفضل تجربة ممكنة.',
-                buttons: ['OK']
-            });
+            if (!isAdmin()) {
+                log.warn("🛑 Not running as admin");
+                dialog.showMessageBoxSync({
+                    type: 'error',
+                    title: 'Admin Rights Required',
+                    message: 'يرجى تشغيل التطبيق كمسؤول لتحديث وقت النظام تلقائيًا.',
+                    buttons: ['OK']
+                });
+                return false; // <- Don't quit; let the app continue
+            }
 
-            setTimeout(() => {
-                app.quit();
-                process.exit(1);
-            }, 2000);
-        } else {
-            console.log('✅ System time is correct');
+            log.info("✅ Admin confirmed, setting system time...");
+            await setSystemTime(actualTime);
         }
-    } catch (error) {
-        console.error('🚨 Error checking time:', error);
-    }
 
+        return true;
+
+    } catch (err) {
+        log.error("❌ Error in checkDateTime():", err);
+        return true; // Fallback: continue anyway
+    }
 }
+
+
+
+
+
+
+
+
 
 
 let mainWindow;
@@ -130,6 +189,8 @@ let hasReloadedOnce = false;
 
 //
 async function createWindow() {
+    log.info('🪟 createWindow() called');
+
     loadSettings();
     mainWindow = new BrowserWindow({
         width: 1280,
@@ -640,13 +701,21 @@ async function createWindow() {
 autoUpdater.logger = require("electron-log");
 autoUpdater.logger.transports.file.level = "info";
 
-checkDateTime();
-//
-app.whenReady().then(() => {
-    createWindow();
-    autoUpdater.forceDevUpdateConfig = true;
-    autoUpdater.checkForUpdatesAndNotify();
+
+
+app.whenReady().then(async () => {
+    createWindow(); // ✅ You create the window
+    const result = await checkDateTime(); // ⏱ Run time check after
+
+    if (!result) {
+        log.warn("⛔ checkDateTime() failed or admin missing");
+        return;
+    }
+
+    autoUpdater.checkForUpdatesAndNotify().catch(console.error);
 });
+
+
 
 //
 autoUpdater.on('checking-for-update', () => {

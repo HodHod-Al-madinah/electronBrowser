@@ -20,6 +20,16 @@ log.info('🚀 App started');
 const fetch = require('node-fetch');
 const { exec } = require('child_process');
 
+async function isOnline() {
+    try {
+        const response = await fetch('https://www.google.com', { method: 'HEAD', timeout: 3000 });
+        return response.ok;
+    } catch (error) {
+        log.warn("📡 Network check failed:", error);
+        return false;
+    }
+}
+
 
 function setSystemTime(newTime) {
     log.info('⚙️ Executing command to set time...');
@@ -385,7 +395,7 @@ async function createWindow() {
         console.log("Close window requested");
         mainWindow.close();
     });
-    
+
     //
     mainWindow.on('focus', () => {
         mainWindow.webContents.executeJavaScript(`
@@ -691,23 +701,46 @@ autoUpdater.logger.transports.file.level = "info";
 
 
 
-app.whenReady().then(async () => {
-    createWindow(); // ✅ You create the window
-    const result = await checkDateTime(); // ⏱ Run time check after
 
-    if (!result) {
-        log.warn("⛔ checkDateTime() failed or admin missing");
+app.whenReady().then(async () => {
+    const online = await isOnline();
+    if (!online) {
+        dialog.showMessageBoxSync({
+            type: 'error',
+            title: 'Network Error',
+            message: '⚠️ لا يوجد اتصال بالإنترنت.\nيرجى التحقق من الاتصال والمحاولة مرة أخرى.',
+            buttons: ['إغلاق']
+        });
+        app.quit();
         return;
     }
 
-    // 🔁 Repeat checkDateTime every 2 minutes (120,000 ms)
+    await createWindow();
+
+    // ⏳ Periodically check internet connection
     setInterval(async () => {
-        log.info("🔁 Scheduled time check triggered...");
+        const stillOnline = await isOnline();
+        if (!stillOnline) {
+            dialog.showMessageBoxSync({
+                type: 'error',
+                title: 'Network Disconnected',
+                message: '⚠️ تم فقد الاتصال بالإنترنت. تأكد من الشبكة.',
+                buttons: ['موافق']
+            });
+        }
+    }, 60 * 1000); // every 60 seconds
+
+    const result = await checkDateTime();
+    if (!result) return;
+
+    setInterval(async () => {
         await checkDateTime();
-    }, 2 * 60 * 1000); // 2 minutes
+    }, 2 * 60 * 1000); // every 2 minutes
 
     autoUpdater.checkForUpdatesAndNotify().catch(console.error);
 });
+
+
 
 
 //

@@ -1,6 +1,6 @@
 {
   "name": "mobi-cashier",
-  "version": "1.0.5",
+  "version": "1.0.6",
   "main": "main.js",
   "description": "A browser-based cashier application built with Electron",
   "author": "Hammam Alageed",

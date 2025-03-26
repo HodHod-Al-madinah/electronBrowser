@@ -17,13 +17,10 @@ log.info('🚀 App started');
 
 
 
-
-
-
 const fetch = require('node-fetch');
 const { exec } = require('child_process');
 
-// Function to set system time on Windows
+
 function setSystemTime(newTime) {
     log.info('⚙️ Executing command to set time...');
 
@@ -47,7 +44,6 @@ function setSystemTime(newTime) {
 }
 
 
-
 // Check if running as admin
 function isAdmin() {
     try {
@@ -59,7 +55,6 @@ function isAdmin() {
         return false;
     }
 }
-
 
 
 async function checkDateTime() {
@@ -101,13 +96,6 @@ async function checkDateTime() {
         return true; // Fallback: continue anyway
     }
 }
-
-
-
-
-
-
-
 
 
 
@@ -712,9 +700,14 @@ app.whenReady().then(async () => {
         return;
     }
 
+    // 🔁 Repeat checkDateTime every 2 minutes (120,000 ms)
+    setInterval(async () => {
+        log.info("🔁 Scheduled time check triggered...");
+        await checkDateTime();
+    }, 2 * 60 * 1000); // 2 minutes
+
     autoUpdater.checkForUpdatesAndNotify().catch(console.error);
 });
-
 
 
 //

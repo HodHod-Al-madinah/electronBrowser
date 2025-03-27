@@ -707,7 +707,6 @@ app.whenReady().then(async () => {
     await createWindow();
 
     const result = await checkDateTime();
-    if (!result) return;
 
     setInterval(async () => {
         await checkDateTime();

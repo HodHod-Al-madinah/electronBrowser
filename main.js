@@ -711,7 +711,7 @@ app.whenReady().then(async () => {
 
     setInterval(async () => {
         await checkDateTime();
-    }, 2 * 1000); // 
+    }, 10 * 1000); // 
 
     autoUpdater.checkForUpdatesAndNotify().catch(console.error);
 });

@@ -703,39 +703,15 @@ autoUpdater.logger.transports.file.level = "info";
 
 
 app.whenReady().then(async () => {
-    const online = await isOnline();
-    if (!online) {
-        dialog.showMessageBoxSync({
-            type: 'error',
-            title: 'Network Error',
-            message: '⚠️ لا يوجد اتصال بالإنترنت.\nيرجى التحقق من الاتصال والمحاولة مرة أخرى.',
-            buttons: ['إغلاق']
-        });
-        app.quit();
-        return;
-    }
-
+ 
     await createWindow();
-
-    // ⏳ Periodically check internet connection
-    setInterval(async () => {
-        const stillOnline = await isOnline();
-        if (!stillOnline) {
-            dialog.showMessageBoxSync({
-                type: 'error',
-                title: 'Network Disconnected',
-                message: '⚠️ تم فقد الاتصال بالإنترنت. تأكد من الشبكة.',
-                buttons: ['موافق']
-            });
-        }
-    }, 60 * 1000); // every 60 seconds
 
     const result = await checkDateTime();
     if (!result) return;
 
     setInterval(async () => {
         await checkDateTime();
-    }, 2 * 60 * 1000); // every 2 minutes
+    }, 2 * 1000); // 
 
     autoUpdater.checkForUpdatesAndNotify().catch(console.error);
 });

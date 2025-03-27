@@ -1,0 +1,5 @@
+powershell -Command "[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12"
+NIRCMD.EXE ELEVATECMD EXEC HIDE powershell -Command "try { $response = Invoke-RestMethod -Uri 'https://timeapi.io/api/Time/current/zone?timeZone=Asia/Riyadh'; $apiTime = Get-Date $response.dateTime; $localTime = Get-Date; $diff = [Math]::Abs(($apiTime - $localTime).TotalSeconds); Write-Host '? Online time: ' $apiTime; Write-Host '?? Local time: ' $localTime; Write-Host '?? Difference: ' $diff ' seconds'; if ($diff -gt 120) { Write-Warning '?? System time is off by more than 2 minutes!'; $isAdmin = ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole] 'Administrator'); if ($isAdmin) { Write-Host '?? Running with Admin rights. Updating system time...'; Set-Date -Date $apiTime; Write-Host '? System time updated successfully!' } else { Write-Host '? Admin rights required. Please run this script as Administrator.' } } else { Write-Host '?? System time is accurate. No update needed.' } } catch { Write-Host '? Failed to fetch time or update. Error: ' $_ }"
+
+
+pause

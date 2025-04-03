@@ -10,16 +10,15 @@ const { promptForScaleFactor } = require('./helpers/scaleHelper');
 const { printInvoiceWindow } = require('./helpers/printHelper');
 const { printInvoiceWindowA4 } = require('./helpers/printHelper');
 const { buildInvoiceMenu } = require('./helpers/menuHelper');
+const fetch = require('node-fetch');
+const { exec } = require('child_process');
 
 
 
 log.info('🚀 App started');
 
 
-
-const fetch = require('node-fetch');
-const { exec } = require('child_process');
-
+//
 async function isOnline() {
     try {
         const response = await fetch('https://www.google.com', { method: 'HEAD', timeout: 3000 });
@@ -31,6 +30,44 @@ async function isOnline() {
 }
 
 
+//
+async function checkNetworkPowerShellAlertOnly() {
+    const command = `powershell -Command "(Test-Connection -ComputerName www.google.com -Count 1 -Quiet)"`;
+    exec(command, { windowsHide: true }, (error, stdout, stderr) => {
+        if (error || stdout.toString().trim() !== "True") {
+            dialog.showMessageBoxSync({
+                type: 'error',
+                title: 'تنبيه - لا يوجد اتصال بالإنترنت',
+                message: '⚠️ جهازك غير متصل بالإنترنت، يرجى التحقق من الاتصال.',
+                buttons: ['موافق']
+            });
+        } else {
+            console.log('✅ الإنترنت يعمل');
+        }
+    });
+}
+
+
+//
+function checkNetworkPowerShell() {
+    return new Promise((resolve, reject) => {
+        const psCommand = `powershell -Command "(Test-Connection -ComputerName www.google.com -Count 1 -Quiet)"`;
+        
+        exec(psCommand, { windowsHide: true }, (error, stdout, stderr) => {
+            if (error) {
+                console.error("❌ PowerShell network check error:", error);
+                return resolve(false);  
+            }
+
+            const isOnline = stdout.toString().trim() === "True";
+            console.log(`📡 PowerShell Network Check: ${isOnline ? 'Online' : 'Offline'}`);
+            resolve(isOnline);
+        });
+    });
+}
+
+
+//
 function setSystemTime(newTime) {
     log.info('⚙️ Executing command to set time...');
 
@@ -54,7 +91,7 @@ function setSystemTime(newTime) {
 }
 
 
-// Check if running as admin
+// 
 function isAdmin() {
     try {
         require('child_process').execSync('NET SESSION', { stdio: 'ignore' });
@@ -67,6 +104,7 @@ function isAdmin() {
 }
 
 
+//
 async function checkDateTime() {
     log.info('⏱ checkDateTime() started');
 
@@ -108,10 +146,8 @@ async function checkDateTime() {
 }
 
 
-
 let mainWindow;
 let scaleFactor = 100;
-
 
 process.env.LANG = 'en-US';
 app.commandLine.appendSwitch('lang', 'en-US');
@@ -137,11 +173,13 @@ ipcMain.on('change-db-name', (event, newDbName) => {
     }
 });
 
+
 //online
 function extractDbName(url) {
     const match = url.match(/https:\/\/www\.mobi-cashier\.com\/([^/]+)\/get/);
     return match ? match[1] : null;
 }
+
 
 //
 function loadStoredDb() {
@@ -700,21 +738,20 @@ autoUpdater.logger = require("electron-log");
 autoUpdater.logger.transports.file.level = "info";
 
 
-
-
 app.whenReady().then(async () => {
- 
     await createWindow();
 
-    const result = await checkDateTime();
+    checkNetworkPowerShellAlertOnly();
 
-    setInterval(async () => {
-        await checkDateTime();
-    }, 10 * 1000); // 
+    await checkDateTime();
+
+    setInterval(() => {
+        checkNetworkPowerShellAlertOnly(); 
+        checkDateTime(); 
+    }, 10 * 1000);
 
     autoUpdater.checkForUpdatesAndNotify().catch(console.error);
 });
-
 
 
 

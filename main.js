@@ -573,12 +573,44 @@ async function createWindow() {
                     contextIsolation: true,
                 }
             });
-
+            
             printWindow.loadURL(url);
-
+            
             printWindow.webContents.once('did-finish-load', () => {
-                printWindow.webContents.executeJavaScript(`window.print();`);
+                // Inject a Print button
+                printWindow.webContents.executeJavaScript(`
+                    const style = document.createElement('style');
+                    style.textContent = \`
+                        @media print {
+                            .print-button {
+                                display: none !important;
+                            }
+                        }
+                    \`;
+                    document.head.appendChild(style);
+                
+                    const btn = document.createElement('button');
+                    btn.textContent = '🖨️ ';
+                    btn.className = 'print-button';
+                    btn.style.position = 'fixed';
+                    btn.style.top = '20px';
+                    btn.style.right = '20px';
+                    btn.style.padding = '10px 20px';
+                    btn.style.fontSize = '16px';
+                    btn.style.backgroundColor = '#2563EB';
+                    btn.style.color = 'white';
+                    btn.style.border = 'none';
+                    btn.style.borderRadius = '8px';
+                    btn.style.boxShadow = '0 2px 6px rgba(0,0,0,0.2)';
+                    btn.style.cursor = 'pointer';
+                    btn.style.zIndex = '9999';
+                    btn.onclick = () => window.print();
+                    document.body.appendChild(btn);
+                `);
+                
+                
             });
+            
 
             return { action: 'deny' };
         } else if (

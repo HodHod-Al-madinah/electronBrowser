@@ -15,6 +15,17 @@ const { exec } = require('child_process');
 
 
 
+/*
+const AppManager = require('./AppManager');
+const appManager = new AppManager();
+
+appManager.start();
+
+*/
+
+
+
+
 log.info('🚀 App started');
 
 

@@ -765,7 +765,6 @@ app.whenReady().then(async () => {
 });
 
 
-
 //
 autoUpdater.on('checking-for-update', () => {
     console.log('🔍 Checking for updates...');

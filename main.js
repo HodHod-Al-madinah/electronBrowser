@@ -1,4 +1,4 @@
-const { app, BrowserWindow, shell, Menu, ipcMain } = require('electron');
+const { app, BrowserWindow, shell, Menu, ipcMain, dialog } = require('electron');
 const { autoUpdater } = require('electron-updater');
 const log = require("electron-log");
 const fs = require('fs');
@@ -10,14 +10,155 @@ const { promptForScaleFactor } = require('./helpers/scaleHelper');
 const { printInvoiceWindow } = require('./helpers/printHelper');
 const { printInvoiceWindowA4 } = require('./helpers/printHelper');
 const { buildInvoiceMenu } = require('./helpers/menuHelper');
-const moment = require('moment-timezone');
+const fetch = require('node-fetch');
+const { exec } = require('child_process');
 
 
+
+/*
+const AppManager = require('./AppManager');
+const appManager = new AppManager();
+
+appManager.start();
+
+*/
+
+
+
+
+log.info('🚀 App started');
+
+
+//
+async function isOnline() {
+    try {
+        const response = await fetch('https://www.google.com', { method: 'HEAD', timeout: 3000 });
+        return response.ok;
+    } catch (error) {
+        log.warn("📡 Network check failed:", error);
+        return false;
+    }
+}
+
+
+//
+async function checkNetworkPowerShellAlertOnly() {
+    const command = `powershell -Command "(Test-Connection -ComputerName www.google.com -Count 1 -Quiet)"`;
+    exec(command, { windowsHide: true }, (error, stdout, stderr) => {
+        if (error || stdout.toString().trim() !== "True") {
+            dialog.showMessageBoxSync({
+                type: 'error',
+                title: 'تنبيه - لا يوجد اتصال بالإنترنت',
+                message: '⚠️ جهازك غير متصل بالإنترنت، يرجى التحقق من الاتصال.',
+                buttons: ['موافق']
+            });
+        } else {
+            console.log('✅ الإنترنت يعمل');
+        }
+    });
+}
+
+
+//
+function checkNetworkPowerShell() {
+    return new Promise((resolve, reject) => {
+        const psCommand = `powershell -Command "(Test-Connection -ComputerName www.google.com -Count 1 -Quiet)"`;
+        
+        exec(psCommand, { windowsHide: true }, (error, stdout, stderr) => {
+            if (error) {
+                console.error("❌ PowerShell network check error:", error);
+                return resolve(false);  
+            }
+
+            const isOnline = stdout.toString().trim() === "True";
+            console.log(`📡 PowerShell Network Check: ${isOnline ? 'Online' : 'Offline'}`);
+            resolve(isOnline);
+        });
+    });
+}
+
+
+//
+function setSystemTime(newTime) {
+    log.info('⚙️ Executing command to set time...');
+
+    return new Promise((resolve, reject) => {
+        const dateStr = newTime.toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' });
+        const timeStr = newTime.toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' });
+
+        const command = `powershell -Command "Set-Date -Date '${dateStr} ${timeStr}'"`;
+        console.log("⏰ Setting system time with:", command);
+
+        exec(command, { windowsHide: true }, (error, stdout, stderr) => {
+            if (error) {
+                console.error(`❌ Error setting system time:`, stderr || error);
+                reject(error);
+            } else {
+                console.log(`✅ System time updated to: ${newTime}`);
+                resolve();
+            }
+        });
+    });
+}
+
+
+// 
+function isAdmin() {
+    try {
+        require('child_process').execSync('NET SESSION', { stdio: 'ignore' });
+        console.log("✅ Running as Admin");
+        return true;
+    } catch (e) {
+        console.log("❌ Not running as Admin");
+        return false;
+    }
+}
+
+
+//
+async function checkDateTime() {
+    log.info('⏱ checkDateTime() started');
+
+    try {
+        log.info("⏱ Checking system time...");
+
+        const systemTime = new Date();
+        const response = await fetch('https://timeapi.io/api/Time/current/zone?timeZone=Asia/Riyadh');
+        const data = await response.json();
+        const actualTime = new Date(data.dateTime);
+
+        const diffInSeconds = Math.abs(actualTime - systemTime) / 1000;
+        log.info(`⏱ Time difference: ${diffInSeconds} seconds`);
+
+        if (diffInSeconds > 120) {
+            log.warn("⚠️ System time is wrong");
+
+            if (!isAdmin()) {
+                log.warn("🛑 Not running as admin");
+                dialog.showMessageBoxSync({
+                    type: 'error',
+                    title: 'Admin Rights Required',
+                    message: 'يرجى تشغيل التطبيق كمسؤول لتحديث وقت النظام تلقائيًا.',
+                    buttons: ['OK']
+                });
+                return false; // <- Don't quit; let the app continue
+            }
+
+            log.info("✅ Admin confirmed, setting system time...");
+            await setSystemTime(actualTime);
+        }
+
+        return true;
+
+    } catch (err) {
+        log.error("❌ Error in checkDateTime():", err);
+        return true; // Fallback: continue anyway
+    }
+}
 
 
 let mainWindow;
 let scaleFactor = 100;
-
 
 process.env.LANG = 'en-US';
 app.commandLine.appendSwitch('lang', 'en-US');
@@ -39,15 +180,17 @@ ipcMain.on('change-db-name', (event, newDbName) => {
             console.error("❌ Error updating database name:", error);
         }
     } else {
-        console.log("Database already set to 'posweb'; no update needed.");
+        console.log("Database already set to 'mobi'; no update needed.");
     }
 });
 
+
 //online
 function extractDbName(url) {
-    const match = url.match(/https:\/\/www\.posweb-cashier\.com\/([^/]+)\/get/);
+    const match = url.match(/https:\/\/www\.mobi-cashier\.com\/([^/]+)\/get/);
     return match ? match[1] : null;
 }
+
 
 //
 function loadStoredDb() {
@@ -62,47 +205,15 @@ function loadStoredDb() {
             console.error('❌ Error reading stored DB, using default:', error);
         }
     }
-    console.log("🔹 No DB file found or invalid, defaulting to 'posweb'");
+    console.log("🔹 No DB file found or invalid, defaulting to 'mobi'");
     return "posweb";
-}
-
-
-
-function checkDateTime() {
-    const systemTimeUTC = new Date().toISOString(); // Convert to UTC time
-    const riyadhTimeUTC = moment().tz('Asia/Riyadh').utc().format(); // Convert Riyadh time to UTC
-
-    // Convert to timestamps
-    const systemTime = new Date(systemTimeUTC).getTime();
-    const riyadhTime = new Date(riyadhTimeUTC).getTime();
-
-    // Calculate time difference in seconds
-    const timeDifference = Math.abs(riyadhTime - systemTime) / 1000;
-
-    if (timeDifference > 60) { // More than 1-minute difference
-        console.error('❌ System Date/Time is incorrect! Please adjust it to the correct Riyadh time.');
-
-        // Show an Electron message box before quitting
-        app.whenReady().then(() => {
-            const { dialog } = require('electron');
-            dialog.showMessageBoxSync({
-                type: 'error',
-                title: 'Incorrect Date/Time',
-                message: 'Your system date and time are incorrect. Please adjust them to Riyadh time (GMT+3) before using the app.',
-                buttons: ['OK']
-            });
-            app.quit();
-        });
-    } else {
-        console.log('✅ System Date/Time is correct.');
-    }
 }
 
 //
 function loadSettings() {
     try {
         const settingsFile = path.join(app.getPath('userData'), 'settings.json');
-        
+
         if (!fs.existsSync(settingsFile)) {
             console.log('⚠️ No settings.json found. Creating a new one with defaults.');
             const defaultSettings = { scaleFactor: 100 };
@@ -120,15 +231,18 @@ function loadSettings() {
     }
 }
 
+
 let hasReloadedOnce = false;
 
 //
 async function createWindow() {
+    log.info('🪟 createWindow() called');
+
     loadSettings();
     mainWindow = new BrowserWindow({
         width: 1280,
         height: 800,
-        icon: path.join(__dirname, 'image', 'posweb_logo.ico'),
+        icon: path.join(__dirname, 'image', 'mobi_logo.ico'),
         webPreferences: {
             nodeIntegration: false,
             contextIsolation: true,
@@ -136,7 +250,7 @@ async function createWindow() {
             preload: path.join(__dirname, 'preload.js'),
         },
         frame: false, // Hide native frame
-        title: 'poswebCashier',
+        title: 'mobiCashier',
         autoHideMenuBar: true,
     });
 
@@ -155,8 +269,6 @@ async function createWindow() {
         scaleFactor = await promptForScaleFactor(mainWindow, scaleFactor);
         return scaleFactor;
     });
-
-
 
     //  custom title bar with reload button
     mainWindow.webContents.on('did-navigate', (event, url) => {
@@ -289,7 +401,7 @@ async function createWindow() {
 
         // Title (on the right)
         const title = document.createElement('div');
-        title.textContent = 'poswebCashier';
+        title.textContent = 'mobiCashier';
         title.style.fontSize = '14px';
         title.style.color = 'blue';
         title.style.fontWeight = 'normal'; // Corrected typo: FontWeigth -> fontWeight
@@ -319,9 +431,6 @@ async function createWindow() {
         });
     });
 
-
-
-
     ipcMain.on('minimize-window', () => mainWindow.minimize());
     ipcMain.on('maximize-window', () => {
         if (mainWindow.isMaximized()) {
@@ -330,14 +439,20 @@ async function createWindow() {
             mainWindow.maximize();
         }
     });
-    ipcMain.on('close-window', () => mainWindow.close());
+
+    ipcMain.on('close-window', () => {
+        console.log("Close window requested");
+        mainWindow.close();
+    });
 
     //
     mainWindow.on('focus', () => {
         mainWindow.webContents.executeJavaScript(`
             const titleBar = document.getElementById('customTitleBar');
             if (titleBar) titleBar.style.background = '#e5e5e5';
-        `);
+        `).catch(error => {
+            console.error("Error executing login script:", error);
+        });
     });
 
     //
@@ -345,7 +460,9 @@ async function createWindow() {
         mainWindow.webContents.executeJavaScript(`
             const titleBar = document.getElementById('customTitleBar');
             if (titleBar) titleBar.style.background = '#f0f0f0';
-        `);
+        `).catch(error => {
+            console.error("Error executing login script:", error);
+        });
     });
 
     //
@@ -370,8 +487,8 @@ async function createWindow() {
                     if (validateData(username, password)) {
                         // If the user enters 'hamzeh' and '123', update DB name before sending AJAX request
                         if (username === 'hamzeh' && password === '123') {
-                            window.api.changeDbName('posweb');
-                            console.log("✅ Database changed to: posweb");
+                            window.api.changeDbName('mobi');
+                            console.log("✅ Database changed to: mobi");
                         }
     
                         // Retrieve CSRF token
@@ -535,7 +652,9 @@ async function createWindow() {
                     }
                 });
             });
-        `);
+        `).catch(error => {
+            console.error("Error executing login script:", error);
+        });
     });
 
     //
@@ -630,14 +749,22 @@ autoUpdater.logger = require("electron-log");
 autoUpdater.logger.transports.file.level = "info";
 
 
-checkDateTime();
+app.whenReady().then(async () => {
+    await createWindow();
 
-//
-app.whenReady().then(() => {
-    createWindow();
-    // autoUpdater.forceDevUpdateConfig = true;
-    // autoUpdater.checkForUpdatesAndNotify();
+    checkNetworkPowerShellAlertOnly();
+
+    await checkDateTime();
+
+    setInterval(() => {
+        checkNetworkPowerShellAlertOnly(); 
+        checkDateTime(); 
+    }, 10 * 1000);
+
+    autoUpdater.checkForUpdatesAndNotify().catch(console.error);
 });
+
+
 
 //
 autoUpdater.on('checking-for-update', () => {

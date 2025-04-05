@@ -63,11 +63,11 @@ async function checkNetworkPowerShellAlertOnly() {
 function checkNetworkPowerShell() {
     return new Promise((resolve, reject) => {
         const psCommand = `powershell -Command "(Test-Connection -ComputerName www.google.com -Count 1 -Quiet)"`;
-        
+
         exec(psCommand, { windowsHide: true }, (error, stdout, stderr) => {
             if (error) {
                 console.error("❌ PowerShell network check error:", error);
-                return resolve(false);  
+                return resolve(false);
             }
 
             const isOnline = stdout.toString().trim() === "True";
@@ -571,17 +571,50 @@ async function createWindow() {
                 webPreferences: {
                     nodeIntegration: false,
                     contextIsolation: true,
-                }
+                },
+                menuBarVisible: false, // Hides the menu bar
             });
-
+            
+            printWindow.setMenu(null);
             printWindow.loadURL(url);
 
             printWindow.webContents.once('did-finish-load', () => {
-                printWindow.webContents.executeJavaScript(`window.print();`);
+                // Inject a Print button
+                printWindow.webContents.executeJavaScript(`
+                    const style = document.createElement('style');
+                    style.textContent = \`
+                        @media print {
+                            .print-button {
+                                display: none !important;
+                            } }
+                    \`;
+                    document.head.appendChild(style);
+
+                    const btn = document.createElement('button');
+                    btn.textContent = '🖨️ ';
+                    btn.className = 'print-button';
+                    btn.style.position = 'fixed';
+                    btn.style.top = '20px';
+                    btn.style.right = '20px';
+                    btn.style.padding = '10px 20px';
+                    btn.style.fontSize = '16px';
+                    btn.style.backgroundColor = '#2563EB';
+                    btn.style.color = 'white';
+                    btn.style.border = 'none';
+                    btn.style.borderRadius = '8px';
+                    btn.style.boxShadow = '0 2px 6px rgba(0,0,0,0.2)';
+                    btn.style.cursor = 'pointer';
+                    btn.style.zIndex = '9999';
+                    btn.onclick = () => window.print();
+                    document.body.appendChild(btn);
+                `);
             });
 
+
             return { action: 'deny' };
-        } else if (
+        }
+
+        else if (
             url.startsWith('https://www.mobi-cashier.com/invoice') ||
             url.includes('https://www.mobi-cashier.com/period-report-htm')
         ) {
@@ -591,9 +624,11 @@ async function createWindow() {
                     nodeIntegration: false,
                     contextIsolation: true,
                     webSecurity: true,
-                }
+                },
+                menuBarVisible: false,
             });
 
+            printWindow.setMenu(null);
             invoiceWindow.loadURL(url);
 
             const invoiceMenuTemplate = buildInvoiceMenu(
@@ -757,8 +792,8 @@ app.whenReady().then(async () => {
     await checkDateTime();
 
     setInterval(() => {
-        checkNetworkPowerShellAlertOnly(); 
-        checkDateTime(); 
+        checkNetworkPowerShellAlertOnly();
+        checkDateTime();
     }, 10 * 1000);
 
     autoUpdater.checkForUpdatesAndNotify().catch(console.error);

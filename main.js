@@ -584,11 +584,10 @@ async function createWindow() {
                         @media print {
                             .print-button {
                                 display: none !important;
-                            }
-                        }
+                            } }
                     \`;
                     document.head.appendChild(style);
-                
+
                     const btn = document.createElement('button');
                     btn.textContent = '🖨️ ';
                     btn.className = 'print-button';
@@ -606,9 +605,7 @@ async function createWindow() {
                     btn.style.zIndex = '9999';
                     btn.onclick = () => window.print();
                     document.body.appendChild(btn);
-                `);
-                
-                
+                `); 
             });
             
 

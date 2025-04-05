@@ -571,9 +571,11 @@ async function createWindow() {
                 webPreferences: {
                     nodeIntegration: false,
                     contextIsolation: true,
-                }
+                },
+                menuBarVisible: false, // Hides the menu bar
             });
             
+            printWindow.setMenu(null);
             printWindow.loadURL(url);
             
             printWindow.webContents.once('did-finish-load', () => {
@@ -622,6 +624,8 @@ async function createWindow() {
                     webSecurity: true,
                 }
             });
+
+            printWindow.setMenu(null);
 
             invoiceWindow.loadURL(url);
 

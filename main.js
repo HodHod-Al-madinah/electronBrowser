@@ -576,8 +576,9 @@ async function createWindow() {
             });
             
             printWindow.setMenu(null);
-            printWindow.loadURL(url);
             
+            printWindow.loadURL(url);
+
             printWindow.webContents.once('did-finish-load', () => {
                 // Inject a Print button
                 printWindow.webContents.executeJavaScript(`
@@ -607,11 +608,12 @@ async function createWindow() {
                     btn.style.zIndex = '9999';
                     btn.onclick = () => window.print();
                     document.body.appendChild(btn);
-                `); 
+                `);
             });
-            
+
 
             return { action: 'deny' };
+        
         } else if (
             url.startsWith('http://127.0.0.1:8000/invoice') ||
             url.includes('http://127.0.0.1:8000/period-report-htm')

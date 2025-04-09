@@ -576,6 +576,7 @@ async function createWindow() {
             });
             
             printWindow.setMenu(null);
+            
             printWindow.loadURL(url);
 
             printWindow.webContents.once('did-finish-load', () => {
@@ -628,7 +629,7 @@ async function createWindow() {
                 menuBarVisible: false,
             });
 
-            printWindow.setMenu(null);
+            invoiceWindow.setMenu(null); // ✅ Fixed
             invoiceWindow.loadURL(url);
 
             const invoiceMenuTemplate = buildInvoiceMenu(

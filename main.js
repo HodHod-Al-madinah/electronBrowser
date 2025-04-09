@@ -625,7 +625,7 @@ async function createWindow() {
                 }
             });
 
-            printWindow.setMenu(null);
+            invoiceWindow.setMenu(null);
 
             invoiceWindow.loadURL(url);
 

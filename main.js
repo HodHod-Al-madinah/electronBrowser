@@ -583,23 +583,26 @@ async function createWindow() {
                 const overlay = document.getElementById('updateOverlay');
                 if (overlay) {
                     const doneMsg = document.createElement('div');
-                    doneMsg.textContent = '✅ تم تحميل التحديث. سيتم إعادة  تشغيل التطبيق...';
+                    doneMsg.textContent = '✅ تم تحميل التحديث ، قم بتشغيل التطبيق   ...';
                     doneMsg.style.fontSize = '22px';
                     doneMsg.style.color = '#00ff99';
                     doneMsg.style.marginTop = '10px';
                     overlay.appendChild(doneMsg);
         
                     setTimeout(() => {
-    window.electron.ipcRenderer.send('restart-app'); // ✅ Correct
-                    }, 2000);
+
+                                console.log("🧪 Force quitting app...>>");
+                                 window.close();
+   
+                        }, 2000);     
                 }
-            });
+            });  
         `).catch(error => {
             console.error("❌ Error injecting update overlay script:", error);
         });
         
        
-        
+        //it sork fine
         
         const rawSerial = `${processorId}-${uuid}-${motherboardSerial}`;
         const serial = rawSerial.replace(/\//g, '');
@@ -988,7 +991,7 @@ autoUpdater.on('update-downloaded', (info) => {
 
 //
 ipcMain.on('install-update', () => {
-    autoUpdater.quitAndInstall();
+    autoUpdater.quitAndInstall(true, true);
 });
 
 //
@@ -1003,7 +1006,7 @@ app.on('window-all-closed', () => {
     }
 });
 
-//
+//yes do here there
 app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) {
         createWindow();
@@ -1012,5 +1015,7 @@ app.on('activate', () => {
 
 //
 ipcMain.on('restart-app', () => {
-    autoUpdater.quitAndInstall();
+    console.log("🧪 Force quitting app...");
+    app.relaunch(); // Relaunches app
+    app.exit(0);     // Exits current instance
 });

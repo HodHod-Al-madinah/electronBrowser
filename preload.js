@@ -37,7 +37,12 @@ contextBridge.exposeInMainWorld('electron', {
 
     // Listen for events from main
     on: (channel, callback) => {
-      const validChannels = ['update-ready', 'download-progress', 'bios-data'];
+      const validChannels = [
+        'update-ready',
+        'download-progress',
+        'update-started',  
+        'bios-data'
+      ];
       if (validChannels.includes(channel)) {
         ipcRenderer.on(channel, (event, ...args) => callback(...args));
       }

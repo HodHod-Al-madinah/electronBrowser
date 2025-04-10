@@ -600,10 +600,10 @@ async function createWindow() {
         `).catch(error => {
             console.error("❌ Error injecting update overlay script:", error);
         });
-        
-       
+
+
         //it sork fine
-        
+
         const rawSerial = `${processorId}-${uuid}-${motherboardSerial}`;
         const serial = rawSerial.replace(/\//g, '');
 
@@ -711,9 +711,9 @@ async function createWindow() {
                 },
                 menuBarVisible: false, // Hides the menu bar
             });
-            
+
             printWindow.setMenu(null);
-            
+
             printWindow.loadURL(url);
 
             printWindow.webContents.once('did-finish-load', () => {

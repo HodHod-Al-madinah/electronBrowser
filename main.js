@@ -35,15 +35,16 @@ let lastUpdatedAt = '-';
 if (fs.existsSync(updateInfoPath)) {
     try {
         const savedUpdate = JSON.parse(fs.readFileSync(updateInfoPath, 'utf8'));
-        lastUpdatedAt = new Date(savedUpdate.updatedAt).toLocaleString('en-US', {
-            year: 'numeric',
-            month: '2-digit',
+        lastUpdatedAt = new Date(savedUpdate.updatedAt).toLocaleDateString('en-GB', {
             day: '2-digit',
+            month: '2-digit',
+            year: 'numeric',
         });
     } catch (e) {
         console.error('❌ Failed to read last update date:', e);
     }
 }
+
 
 
 
@@ -433,22 +434,37 @@ async function createWindow() {
             timeDisplay.style.position = 'absolute';
             timeDisplay.style.left = '50%';
             timeDisplay.style.transform = 'translateX(-50%)';
-            timeDisplay.style.fontSize = '14px';
+            timeDisplay.style.fontSize = '15px';
             timeDisplay.style.color = 'blue';
             timeDisplay.style.fontWeight = 'normal';
             timeDisplay.style.webkitAppRegion = 'no-drag';
             titleBar.appendChild(timeDisplay);
 
-                function updateTime() {
+         function updateTime() {
                 const now = new Date();
+
                 const weekday = now.toLocaleDateString('en-US', { weekday: 'long' });
-                const date = now.toLocaleDateString('en-US', { day: '2-digit', month: '2-digit', year: 'numeric' });
-                const time = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
-                timeDisplay.textContent = \`\${weekday}\u00A0\u00A0\u00A0\u00A0\${date}\u00A0\u00A0\u00A0\u00A0\${time}\`;
+
+                 const date = now.toLocaleDateString('en-GB', {
+                    day: '2-digit',
+                    month: '2-digit',
+                    year: 'numeric'
+                });
+
+                 const time = now.toLocaleTimeString('en-US', {
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    second: '2-digit',
+                    hour12: true
+                });
+
+                     timeDisplay.textContent = weekday + "    " + date + "    " + time;
             }
 
             updateTime();
             setInterval(updateTime, 1000);
+
+
 
 
         // Assemble title bar

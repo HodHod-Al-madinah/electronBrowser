@@ -24,9 +24,27 @@ appManager.start();
 */
 
 
-
-
 log.info('🚀 App started');
+
+const appVersion = app.getVersion();
+
+const updateInfoPath = path.join(app.getPath('userData'), 'last_update.json');
+let lastUpdatedAt = '-';
+
+if (fs.existsSync(updateInfoPath)) {
+    try {
+        const savedUpdate = JSON.parse(fs.readFileSync(updateInfoPath, 'utf8'));
+        lastUpdatedAt = new Date(savedUpdate.updatedAt).toLocaleDateString('en-GB', {
+            day: '2-digit',
+            month: '2-digit',
+            year: 'numeric',
+        });
+    } catch (e) {
+        console.error('❌ Failed to read last update date:', e);
+    }
+}
+
+
 
 
 //
@@ -39,6 +57,7 @@ async function isOnline() {
         return false;
     }
 }
+
 
 
 //
@@ -63,11 +82,11 @@ async function checkNetworkPowerShellAlertOnly() {
 function checkNetworkPowerShell() {
     return new Promise((resolve, reject) => {
         const psCommand = `powershell -Command "(Test-Connection -ComputerName www.google.com -Count 1 -Quiet)"`;
-        
+
         exec(psCommand, { windowsHide: true }, (error, stdout, stderr) => {
             if (error) {
                 console.error("❌ PowerShell network check error:", error);
-                return resolve(false);  
+                return resolve(false);
             }
 
             const isOnline = stdout.toString().trim() === "True";
@@ -141,7 +160,7 @@ async function checkDateTime() {
                     message: 'يرجى تشغيل التطبيق كمسؤول لتحديث وقت النظام تلقائيًا.',
                     buttons: ['OK']
                 });
-                return false; // <- Don't quit; let the app continue
+                return false;  
             }
 
             log.info("✅ Admin confirmed, setting system time...");
@@ -152,7 +171,7 @@ async function checkDateTime() {
 
     } catch (err) {
         log.error("❌ Error in checkDateTime():", err);
-        return true; // Fallback: continue anyway
+        return true;  
     }
 }
 
@@ -206,7 +225,7 @@ function loadStoredDb() {
         }
     }
     console.log("🔹 No DB file found or invalid, defaulting to 'mobi'");
-    return "posweb";
+    return "mobi";
 }
 
 //
@@ -399,14 +418,54 @@ async function createWindow() {
         buttons.appendChild(reloadBtn);
         buttons.appendChild(printerBtn);
 
-        // Title (on the right)
+
+
         const title = document.createElement('div');
-        title.textContent = 'mobiCashier';
-        title.style.fontSize = '14px';
-        title.style.color = 'blue';
-        title.style.fontWeight = 'normal'; // Corrected typo: FontWeigth -> fontWeight
-        title.style.marginLeft = '5px'; // Should this be marginRight for right-side?
-        title.style.webkitAppRegion = 'drag';
+            title.textContent = "mobiCashier  v${appVersion}  (${lastUpdatedAt})";
+            title.style.fontSize = '12px';
+            title.style.color = '#333';
+            title.style.fontWeight = 'normal';
+            title.style.marginLeft = '5px';
+            title.style.webkitAppRegion = 'drag';
+
+
+             const timeDisplay = document.createElement('div');
+            timeDisplay.id = 'timeDisplay';
+            timeDisplay.style.position = 'absolute';
+            timeDisplay.style.left = '50%';
+            timeDisplay.style.transform = 'translateX(-50%)';
+            timeDisplay.style.fontSize = '15px';
+            timeDisplay.style.color = 'blue';
+            timeDisplay.style.fontWeight = 'normal';
+            timeDisplay.style.webkitAppRegion = 'no-drag';
+            titleBar.appendChild(timeDisplay);
+
+         function updateTime() {
+                const now = new Date();
+
+                const weekday = now.toLocaleDateString('en-US', { weekday: 'long' });
+
+                 const date = now.toLocaleDateString('en-GB', {
+                    day: '2-digit',
+                    month: '2-digit',
+                    year: 'numeric'
+                });
+
+                 const time = now.toLocaleTimeString('en-US', {
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    second: '2-digit',
+                    hour12: true
+                });
+
+                     timeDisplay.textContent = weekday + "    " + date + "    " + time;
+            }
+
+            updateTime();
+            setInterval(updateTime, 1000);
+
+
+
 
         // Assemble title bar
         titleBar.appendChild(buttons);
@@ -467,6 +526,100 @@ async function createWindow() {
 
     //
     mainWindow.webContents.on('did-finish-load', async () => {
+
+        mainWindow.webContents.executeJavaScript(`
+            // Update Started
+            window.electron.ipcRenderer.on('update-started', () => {
+                let overlay = document.getElementById('updateOverlay');
+           if (!overlay) {
+                overlay = document.createElement('div');
+                overlay.id = 'updateOverlay';
+                overlay.style.position = 'fixed';
+                overlay.style.top = 0;
+                overlay.style.left = 0;
+                overlay.style.width = '100%';
+                overlay.style.height = '100%';
+                overlay.style.backgroundColor = 'rgba(0,0,0,0.6)';
+                overlay.style.display = 'flex';
+                overlay.style.alignItems = 'center';
+                overlay.style.justifyContent = 'center';
+                overlay.style.zIndex = 9999;
+
+                // ✅ Create the message box
+                const messageBox = document.createElement('div');
+                messageBox.style.backgroundColor = '#ffffff'; // Tailwind dark-slate-800
+                messageBox.style.padding = '30px 40px';
+                messageBox.style.borderRadius = '12px';
+                messageBox.style.boxShadow = '0 8px 24px rgba(0,0,0,0.5)';
+                messageBox.style.textAlign = 'center';
+                messageBox.style.color = '##00ff99';
+                messageBox.style.minWidth = '320px';
+                messageBox.style.maxWidth = '90%';
+
+                // Status message
+                const statusMsg = document.createElement('div');
+                statusMsg.id = 'updateStatus';
+                statusMsg.textContent = '📦 جاري تحميل التحديث الجديد...';
+                statusMsg.style.fontSize = '20px';
+                statusMsg.style.marginBottom = '15px';
+
+                // Progress percentage
+                const progress = document.createElement('div');
+                progress.id = 'updateProgress';
+                progress.textContent = '0%';
+                progress.style.fontSize = '18px';
+                progress.style.marginTop = '5px';
+
+                // 👇 Append to messageBox, then to overlay
+                messageBox.appendChild(statusMsg);
+                messageBox.appendChild(progress);
+                overlay.appendChild(messageBox);
+
+                document.body.appendChild(overlay);
+            }
+
+            });
+        
+            // Download Progress
+            window.electron.ipcRenderer.on('download-progress', (percent) => {
+                const progressEl = document.getElementById('updateProgress');
+                if (progressEl) {
+                    progressEl.textContent = percent + '%';
+                }
+            });
+           
+            // Update Ready to close and open app
+            window.electron.ipcRenderer.on('update-ready', () => {
+                const statusMsg = document.getElementById('updateStatus');
+                const progressEl = document.getElementById('updateProgress');
+        
+                if (statusMsg) statusMsg.remove();
+                if (progressEl) progressEl.remove();
+        
+                const overlay = document.getElementById('updateOverlay');
+                if (overlay) {
+                    const doneMsg = document.createElement('div');
+                    doneMsg.textContent = '✅ تم تحميل التحديث ، قم بتشغيل التطبيق   ...';
+                    doneMsg.style.fontSize = '22px';
+                    doneMsg.style.color = '#00ff99';
+                    doneMsg.style.marginTop = '10px';
+                    overlay.appendChild(doneMsg);
+        
+                    setTimeout(() => {
+
+                                console.log("🧪 Force quitting app...>>");
+                                 window.close();
+   
+                        }, 2000);     
+                }
+            });  
+        `).catch(error => {
+            console.error("❌ Error injecting update overlay script:", error);
+        });
+
+
+        //it sork fine
+
         const rawSerial = `${processorId}-${uuid}-${motherboardSerial}`;
         const serial = rawSerial.replace(/\//g, '');
 
@@ -574,9 +727,9 @@ async function createWindow() {
                 },
                 menuBarVisible: false, // Hides the menu bar
             });
-            
+
             printWindow.setMenu(null);
-            
+
             printWindow.loadURL(url);
 
             printWindow.webContents.once('did-finish-load', () => {
@@ -613,8 +766,9 @@ async function createWindow() {
 
 
             return { action: 'deny' };
-        
-        } else if (
+        }
+
+        else if (
             url.startsWith('http://127.0.0.1:8000/invoice') ||
             url.includes('http://127.0.0.1:8000/period-report-htm')
         ) {
@@ -624,11 +778,11 @@ async function createWindow() {
                     nodeIntegration: false,
                     contextIsolation: true,
                     webSecurity: true,
-                }
+                },
+                menuBarVisible: false,
             });
 
-            invoiceWindow.setMenu(null);
-
+            invoiceWindow.setMenu(null); // ✅ Fixed
             invoiceWindow.loadURL(url);
 
             const invoiceMenuTemplate = buildInvoiceMenu(
@@ -779,9 +933,11 @@ async function createWindow() {
     }
 }
 
+
 //
 autoUpdater.logger = require("electron-log");
 autoUpdater.logger.transports.file.level = "info";
+
 
 
 app.whenReady().then(async () => {

@@ -46,8 +46,6 @@ if (fs.existsSync(updateInfoPath)) {
 }
 
 
-
-
 //
 async function isOnline() {
     try {
@@ -964,8 +962,7 @@ autoUpdater.on('checking-for-update', () => {
 autoUpdater.on('update-available', (info) => {
     console.log(`✅ Update available: v${info.version}`);
 
-    // 👇 This will trigger the overlay in your browser window
-    mainWindow.webContents.send('update-started');
+     mainWindow.webContents.send('update-started');
 
     mainWindow.webContents.send('update-available', info);
 });
@@ -1022,7 +1019,6 @@ app.on('window-all-closed', () => {
     }
 });
 
-//yes do here there
 app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) {
         createWindow();
@@ -1032,6 +1028,6 @@ app.on('activate', () => {
 //
 ipcMain.on('restart-app', () => {
     console.log("🧪 Force quitting app...");
-    app.relaunch(); // Relaunches app
-    app.exit(0);     // Exits current instance
+    app.relaunch(); 
+    app.exit(0);    
 });

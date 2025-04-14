@@ -160,7 +160,7 @@ async function checkDateTime() {
                     message: 'يرجى تشغيل التطبيق كمسؤول لتحديث وقت النظام تلقائيًا.',
                     buttons: ['OK']
                 });
-                return false; // <- Don't quit; let the app continue
+                return false;  
             }
 
             log.info("✅ Admin confirmed, setting system time...");
@@ -171,7 +171,7 @@ async function checkDateTime() {
 
     } catch (err) {
         log.error("❌ Error in checkDateTime():", err);
-        return true; // Fallback: continue anyway
+        return true;  
     }
 }
 
@@ -268,7 +268,7 @@ async function createWindow() {
             webSecurity: true,
             preload: path.join(__dirname, 'preload.js'),
         },
-        frame: false, // Hide native frame
+        frame: false,  
         title: 'mobiCashier',
         autoHideMenuBar: true,
     });
@@ -289,8 +289,7 @@ async function createWindow() {
         return scaleFactor;
     });
 
-    //  custom title bar with reload button
-    mainWindow.webContents.on('did-navigate', (event, url) => {
+     mainWindow.webContents.on('did-navigate', (event, url) => {
         mainWindow.webContents.executeJavaScript(`
         // Remove existing title bar if present
         let existingTitleBar = document.getElementById('customTitleBar');
@@ -298,8 +297,7 @@ async function createWindow() {
             existingTitleBar.remove();
         }
         
-          // Proceed with creating the new title bar
-        const titleBar = document.createElement('div');
+         const titleBar = document.createElement('div');
         titleBar.id = 'customTitleBar';
         titleBar.style.position = 'fixed';
         titleBar.style.top = '0';
@@ -319,8 +317,7 @@ async function createWindow() {
         buttons.style.webkitAppRegion = 'no-drag';
         buttons.style.marginLeft = '0';
 
-        // Printer button
-        const printerBtn = document.createElement('button');
+         const printerBtn = document.createElement('button');
         printerBtn.innerHTML = '🖨️';
         printerBtn.style.width = '25px';
         printerBtn.style.height = '25px';
@@ -337,8 +334,7 @@ async function createWindow() {
         printerBtn.onmouseup = () => printerBtn.style.background = '#d4d4d4';
         printerBtn.onclick = () => window.electron.ipcRenderer.invoke('prompt-scale-factor');
 
-        // Reload button
-        const reloadBtn = document.createElement('button');
+         const reloadBtn = document.createElement('button');
         reloadBtn.id = 'reloadBtn';
         reloadBtn.innerHTML = '↻';
         reloadBtn.style.width = '25px';
@@ -356,8 +352,7 @@ async function createWindow() {
         reloadBtn.onmouseup = () => reloadBtn.style.background = '#d4d4d4';
         reloadBtn.onclick = () => window.location.reload();
 
-        // Minimize button
-        const minBtn = document.createElement('button');
+         const minBtn = document.createElement('button');
         minBtn.innerHTML = '−';
         minBtn.style.width = '25px';
         minBtn.style.height = '25px';
@@ -374,8 +369,7 @@ async function createWindow() {
         minBtn.onmouseup = () => minBtn.style.background = '#d4d4d4';
         minBtn.onclick = () => window.electron.ipcRenderer.send('minimize-window');
 
-        // Maximize/Restore button
-        const maxBtn = document.createElement('button');
+         const maxBtn = document.createElement('button');
         maxBtn.innerHTML = '□';
         maxBtn.style.width = '25px';
         maxBtn.style.height = '25px';
@@ -392,8 +386,7 @@ async function createWindow() {
         maxBtn.onmouseup = () => maxBtn.style.background = '#d4d4d4';
         maxBtn.onclick = () => window.electron.ipcRenderer.send('maximize-window');
 
-        // Close button
-        const closeBtn = document.createElement('button');
+         const closeBtn = document.createElement('button');
         closeBtn.innerHTML = '✕';
         closeBtn.style.width = '25px';
         closeBtn.style.height = '25px';
@@ -411,8 +404,7 @@ async function createWindow() {
         closeBtn.onmouseup = () => closeBtn.style.background = '#e81123';
         closeBtn.onclick = () => window.electron.ipcRenderer.send('close-window');
 
-        // Append buttons (left to right: close, max, min, reload, printer)
-        buttons.appendChild(closeBtn);
+         buttons.appendChild(closeBtn);
         buttons.appendChild(maxBtn);
         buttons.appendChild(minBtn);
         buttons.appendChild(reloadBtn);
@@ -467,19 +459,16 @@ async function createWindow() {
 
 
 
-        // Assemble title bar
-        titleBar.appendChild(buttons);
+         titleBar.appendChild(buttons);
         titleBar.appendChild(title);
 
-        // Adjust body to prevent scrollbar
-        document.body.style.paddingTop = '25px';
+         document.body.style.paddingTop = '25px';
         document.body.style.height = 'calc(100vh - 25px)'; // Adjust height to fit viewport
         document.body.style.overflowY = 'auto'; // Allow content scrolling if needed
 
         document.body.insertBefore(titleBar, document.body.firstChild);
 
-        // Sync with window focus
-        window.onfocus = () => {
+         window.onfocus = () => {
             titleBar.style.background = '#e5e5e5';
         };
         window.onblur = () => {
@@ -547,7 +536,7 @@ async function createWindow() {
                 overlay.style.zIndex = 9999;
 
                 const messageBox = document.createElement('div');
-                messageBox.style.backgroundColor = '#ffffff'; // Tailwind dark-slate-800
+                messageBox.style.backgroundColor = '#ffffff';  
                 messageBox.style.padding = '30px 40px';
                 messageBox.style.borderRadius = '12px';
                 messageBox.style.boxShadow = '0 8px 24px rgba(0,0,0,0.5)';
@@ -578,16 +567,14 @@ async function createWindow() {
 
             });
         
-            // Download Progress
-            window.electron.ipcRenderer.on('download-progress', (percent) => {
+             window.electron.ipcRenderer.on('download-progress', (percent) => {
                 const progressEl = document.getElementById('updateProgress');
                 if (progressEl) {
                     progressEl.textContent = percent + '%';
                 }
             });
            
-            // Update Ready to close and open app
-            window.electron.ipcRenderer.on('update-ready', () => {
+             window.electron.ipcRenderer.on('update-ready', () => {
                 const statusMsg = document.getElementById('updateStatus');
                 const progressEl = document.getElementById('updateProgress');
         
@@ -616,8 +603,7 @@ async function createWindow() {
         });
 
 
-        //it sork fine
-
+ 
         const rawSerial = `${processorId}-${uuid}-${motherboardSerial}`;
         const serial = rawSerial.replace(/\//g, '');
 
@@ -636,17 +622,14 @@ async function createWindow() {
 
 
                     if (validateData(username, password)) {
-                        // If the user enters 'hamzeh' and '123', update DB name before sending AJAX request
-                        if (username === 'hamzeh' && password === '123') {
+                         if (username === 'hamzeh' && password === '123') {
                             window.api.changeDbName('mobi');
                             console.log("✅ Database changed to: mobi");
                         }
     
-                        // Retrieve CSRF token
-                        const csrfToken = $('meta[name="csrf-token"]').attr('content');
+                         const csrfToken = $('meta[name="csrf-token"]').attr('content');
     
-                        // Send AJAX request for all users
-                        $.ajax({
+                         $.ajax({
                             url: '/login',
                             type: 'POST',
                             headers: { 'X-CSRF-TOKEN': csrfToken },
@@ -723,7 +706,7 @@ async function createWindow() {
                     nodeIntegration: false,
                     contextIsolation: true,
                 },
-                menuBarVisible: false, // Hides the menu bar
+                menuBarVisible: false, 
             });
 
             printWindow.setMenu(null);
@@ -731,8 +714,7 @@ async function createWindow() {
             printWindow.loadURL(url);
 
             printWindow.webContents.once('did-finish-load', () => {
-                // Inject a Print button
-                printWindow.webContents.executeJavaScript(`
+                 printWindow.webContents.executeJavaScript(`
                     const style = document.createElement('style');
                     style.textContent = \`
                         @media print {
@@ -780,7 +762,7 @@ async function createWindow() {
                 menuBarVisible: false,
             });
 
-            invoiceWindow.setMenu(null); // ✅ Fixed
+            invoiceWindow.setMenu(null);  
             invoiceWindow.loadURL(url);
 
             const invoiceMenuTemplate = buildInvoiceMenu(
@@ -812,8 +794,7 @@ async function createWindow() {
     mainWindow.webContents.on('did-finish-load', () => {
         mainWindow.webContents.executeJavaScript(`
             $(document).ready(() => {
-                // Handle keydown events
-                $(document).on('keydown', (event) => {
+                 $(document).on('keydown', (event) => {
                     if (event.key === 'F12') {
                         window.close();
                     } else if (event.key === 'F5') {
@@ -823,8 +804,7 @@ async function createWindow() {
                     } else if (event.key === 'Enter') {
                         const $currentElement = $(document.activeElement);
                         
-                        // Check if focused on the 'name' input and focus the 'password' input
-                        if ($currentElement.attr('id') === 'name') {
+                         if ($currentElement.attr('id') === 'name') {
                             $('#password').focus();
                         } else if ($currentElement.attr('id') === 'password') {
                             $('.login').click();
@@ -832,8 +812,7 @@ async function createWindow() {
                     }
                 });
     
-                // Handle click events to close the window
-                $(document).on('click', (event) => {
+                 $(document).on('click', (event) => {
                     if ($(event.target).attr('id') === 'exitButton') {
                         window.close();
                     }
@@ -986,7 +965,6 @@ autoUpdater.on('update-downloaded', (info) => {
     console.log(`🎉 Update downloaded: v${info.version}`);
     mainWindow.webContents.send('update-ready', info.version);
 
-    // ✅ Save update info to file
     const updateInfoPath = path.join(app.getPath('userData'), 'last_update.json');
     const now = new Date().toISOString();
 

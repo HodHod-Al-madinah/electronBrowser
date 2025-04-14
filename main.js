@@ -224,8 +224,8 @@ function loadStoredDb() {
             console.error('❌ Error reading stored DB, using default:', error);
         }
     }
-    console.log("🔹 No DB file found or invalid, defaulting to 'mobi'");
-    return "mobi";
+    console.log("🔹 No DB file found or invalid, defaulting to 'posweb'");
+    return "posweb";
 }
 
 //
@@ -490,6 +490,8 @@ async function createWindow() {
         });
     });
 
+
+    
     ipcMain.on('minimize-window', () => mainWindow.minimize());
     ipcMain.on('maximize-window', () => {
         if (mainWindow.isMaximized()) {
@@ -526,6 +528,10 @@ async function createWindow() {
 
     //
     mainWindow.webContents.on('did-finish-load', async () => {
+        setTimeout(() => {
+            console.log("⌨️ Reloading window contents...");
+            mainWindow.webContents.reloadIgnoringCache(); // Equivalent to Ctrl+Shift+R
+          }, 1000);
 
         mainWindow.webContents.executeJavaScript(`
             // Update Started
@@ -929,7 +935,8 @@ async function createWindow() {
     if (!hasReloadedOnce) {
         hasReloadedOnce = true;
         console.log('you are');
-        mainWindow.webContents.reload()
+        mainWindow.webContents.reloadIgnoringCache();
+
     }
 }
 

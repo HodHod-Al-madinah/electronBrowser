@@ -528,10 +528,7 @@ async function createWindow() {
 
     //
     mainWindow.webContents.on('did-finish-load', async () => {
-        setTimeout(() => {
-            console.log("⌨️ Reloading window contents...");
-            mainWindow.webContents.reloadIgnoringCache(); // Equivalent to Ctrl+Shift+R
-          }, 1000);
+      
 
         mainWindow.webContents.executeJavaScript(`
             // Update Started

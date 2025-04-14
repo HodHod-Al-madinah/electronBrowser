@@ -527,8 +527,15 @@ async function createWindow() {
     //
     mainWindow.webContents.on('did-finish-load', async () => {
 
+        setTimeout(() => {
+            console.log("⌨️ Reloading window on browser open...");
+            mainWindow.webContents.reloadIgnoringCache(); 
+          }, 1000);
+
+
+
         mainWindow.webContents.executeJavaScript(`
-            // Update Started
+
             window.electron.ipcRenderer.on('update-started', () => {
                 let overlay = document.getElementById('updateOverlay');
            if (!overlay) {
@@ -545,7 +552,6 @@ async function createWindow() {
                 overlay.style.justifyContent = 'center';
                 overlay.style.zIndex = 9999;
 
-                // ✅ Create the message box
                 const messageBox = document.createElement('div');
                 messageBox.style.backgroundColor = '#ffffff'; // Tailwind dark-slate-800
                 messageBox.style.padding = '30px 40px';
@@ -556,21 +562,19 @@ async function createWindow() {
                 messageBox.style.minWidth = '320px';
                 messageBox.style.maxWidth = '90%';
 
-                // Status message
                 const statusMsg = document.createElement('div');
                 statusMsg.id = 'updateStatus';
                 statusMsg.textContent = '📦 جاري تحميل التحديث الجديد...';
                 statusMsg.style.fontSize = '20px';
                 statusMsg.style.marginBottom = '15px';
 
-                // Progress percentage
+
                 const progress = document.createElement('div');
                 progress.id = 'updateProgress';
                 progress.textContent = '0%';
                 progress.style.fontSize = '18px';
                 progress.style.marginTop = '5px';
 
-                // 👇 Append to messageBox, then to overlay
                 messageBox.appendChild(statusMsg);
                 messageBox.appendChild(progress);
                 overlay.appendChild(messageBox);
@@ -928,8 +932,9 @@ async function createWindow() {
     //
     if (!hasReloadedOnce) {
         hasReloadedOnce = true;
-        console.log('you are');
-        mainWindow.webContents.reload()
+        console.log('you are in hasReloadedOnce');
+        mainWindow.webContents.reloadIgnoringCache();
+
     }
 }
 

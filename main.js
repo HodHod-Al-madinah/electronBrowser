@@ -527,13 +527,7 @@ async function createWindow() {
     //
     mainWindow.webContents.on('did-finish-load', async () => {
 
-        setTimeout(() => {
-            console.log("⌨️ Reloading window on browser open...");
-            mainWindow.webContents.reloadIgnoringCache(); 
-          }, 1000);
-
-
-
+      
         mainWindow.webContents.executeJavaScript(`
 
             window.electron.ipcRenderer.on('update-started', () => {

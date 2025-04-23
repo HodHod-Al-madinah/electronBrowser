@@ -28,7 +28,7 @@
     "moment-timezone": "^0.5.46",
     "node-fetch": "^2.7.0",
     "ntp-client": "^0.5.3",
-    "systeminformation": "^5.23.5"
+    "systeminformation": "^5.25.11"
   },
   "build": {
     "appId": "com.hodhod.browser",

@@ -1,36 +1,66 @@
-const { exec } = require('child_process');
+const si = require('systeminformation');
 
 async function getWMICInfo() {
-    return new Promise((resolve, reject) => {
-        let systemInfo = {
+    try {
+        const [system, baseboard, cpu] = await Promise.all([
+            si.system(),
+            si.baseboard(),
+            si.cpu()
+        ]);
+
+        return {
+            processorId: cpu?.vendor + "-" + cpu?.brand || 'unknown',
+            uuid: system?.uuid || 'unknown',
+            motherboardSerial: baseboard?.serial || 'unknown'
+        };
+    } catch (error) {
+        console.error('❌ Failed to get system info:', error);
+        return {
             processorId: 'unknown',
             uuid: 'unknown',
             motherboardSerial: 'unknown'
         };
-
-         exec('wmic cpu get ProcessorId /value', (error, stdout) => {
-            if (!error && stdout) {
-                systemInfo.processorId = stdout.split('=')[1]?.trim() || 'unknown';
-            }
-
-            exec('wmic csproduct get UUID /value', (error, stdout) => {
-                if (!error && stdout) {
-                    systemInfo.uuid = stdout.split('=')[1]?.trim() || 'unknown';
-                }
-
-                exec('wmic baseboard get serialnumber /value', (error, stdout) => {
-                    if (!error && stdout) {
-                        systemInfo.motherboardSerial = stdout.split('=')[1]?.trim() || 'unknown';
-                    }
-
-                    resolve(systemInfo);
-                });
-            });
-        });
-    });
+    }
 }
 
 module.exports = { getWMICInfo };
+
+
+
+
+// const { exec } = require('child_process');
+
+// async function getWMICInfo() {
+//     return new Promise((resolve, reject) => {
+//         let systemInfo = {
+//             processorId: 'unknown',
+//             uuid: 'unknown',
+//             motherboardSerial: 'unknown'
+//         };
+
+//          exec('wmic cpu get ProcessorId /value', (error, stdout) => {
+//             if (!error && stdout) {
+//                 systemInfo.processorId = stdout.split('=')[1]?.trim() || 'unknown';
+//             }
+
+//             exec('wmic csproduct get UUID /value', (error, stdout) => {
+//                 if (!error && stdout) {
+//                     systemInfo.uuid = stdout.split('=')[1]?.trim() || 'unknown';
+//                 }
+
+//                 exec('wmic baseboard get serialnumber /value', (error, stdout) => {
+//                     if (!error && stdout) {
+//                         systemInfo.motherboardSerial = stdout.split('=')[1]?.trim() || 'unknown';
+//                     }
+
+//                     resolve(systemInfo);
+//                 });
+//             });
+//         });
+//     });
+// }
+
+// module.exports = { getWMICInfo };
 
 
 

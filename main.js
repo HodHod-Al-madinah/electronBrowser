@@ -609,25 +609,69 @@ async function createWindow() {
 
         mainWindow.webContents.executeJavaScript(`
             $(document).ready(() => {
+
+
+   // 👇 هنا ضيف الكود الجديد قبل أي شيء
+        const pending = localStorage.getItem('pendingLogin');
+        if (pending) {
+            const { username, password } = JSON.parse(pending);
+            const dbName = localStorage.getItem('dbName') || 'mobi';
+            const serial = "${serial}";
+            const csrfToken = $('meta[name="csrf-token"]').attr('content');
+
+            localStorage.removeItem('pendingLogin');
+
+            $.ajax({
+                url: '/login',
+                type: 'POST',
+                headers: { 'X-CSRF-TOKEN': csrfToken },
+                data: { username, password, serial, dbName },
+                success: function(response) {
+                    console.log("✅ Auto login successful");
+                    window.location.href = window.location.origin + '/' + response.router;
+                },
+                error: function(xhr, status, error) {
+                    console.log("❌ Auto login failed:", error);
+                    showErrorToast('خطأ', 'فشل تسجيل الدخول التلقائي');
+                }
+            });
+        }
+
+
+
+
+
+
                 $('#name').focus();
     
                 $(document).off('click', '.login').on('click', '.login', (event) => {
                     let username = $('#name').val();
                     let password = $('#password').val();
-                    let serial = "${serial}";
-                         
-                    
-                    let dbName = "${dbName}"; 
-                    localStorage.setItem('dbName', dbName);
+                    let serial = "${serial}"; 
+                    let dbName = localStorage.getItem('dbName') || 'mobi'; 
+                    const csrfToken = $('meta[name="csrf-token"]').attr('content');
 
 
-                    if (validateData(username, password)) {
-                         if (username === 'hamzeh' && password === '123') {
-                            window.api.changeDbName('mobi');
-                            console.log("✅ Database changed to: mobi");
-                        }
-    
-                         const csrfToken = $('meta[name="csrf-token"]').attr('content');
+
+                 if (validateData(username, password)) {
+                          
+                     if (username === 'hamzeh' && password === '123') {
+                        if(dbName !== 'mobi') {
+                            const newDb = 'mobi';
+                                    localStorage.setItem('dbName', newDb);
+                                     dbName = newDb;
+                                     localStorage.setItem('pendingLogin', JSON.stringify({ username, password }));
+                                     window.api.changeDbName(newDb);
+                                     setTimeout(() => {
+                                    window.location.href = "https://www.mobi-cashier.com/" + newDb + "/get/";
+                                  
+                                    }, 300);
+                                    return;  
+                                      }
+                                  
+                                }
+
+
     
                          $.ajax({
                             url: '/login',

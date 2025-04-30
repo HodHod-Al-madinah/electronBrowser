@@ -186,22 +186,27 @@ const dbFilePath = path.join(app.getPath('userData'), 'selected_db.json');
 let dbName = loadStoredDb();
 
 //
-ipcMain.on('change-db-name', (event, newDbName) => {
+ipcMain.handle('change-db-name', async (event, newDbName) => {
     if (dbName !== newDbName) {
         try {
-            fs.writeFileSync(dbFilePath, JSON.stringify({ db: newDbName }), 'utf8');
+            fs.writeFileSync(dbFilePath, JSON.stringify({ db: newDbName }), 'utf8');  
             console.log(`✅ Database updated to ${newDbName}`);
             dbName = newDbName;
             if (mainWindow) {
                 mainWindow.loadURL(`http://127.0.0.1:8000/${dbName}/get/`);
             }
+            return newDbName;
         } catch (error) {
             console.error("❌ Error updating database name:", error);
+            throw error;
         }
     } else {
-        console.log("Database already set to 'mobi'; no update needed.");
+        console.log("⚠️ Database already set to this value.");
+        return dbName;
     }
 });
+
+
 
 
 //online
@@ -636,17 +641,20 @@ async function createWindow() {
                     let serial = "${serial}";
                          
                     
-                    let dbName = "${dbName}"; 
-                    localStorage.setItem('dbName', dbName);
+                        let dbName = localStorage.getItem('dbName') || 'posweb';
 
 
                     if (validateData(username, password)) {
-                        // If the user enters 'hamzeh' and '123', update DB name before sending AJAX request
-                        if (username === 'hamzeh' && password === '123') {
-                            window.api.changeDbName('mobi');
-                            console.log("✅ Database changed to: mobi");
-                        }
-    
+                    
+                    
+                          if (username === 'hamzeh' && password === '123') {
+                                const newDb = 'posweb'; // هنا تختار الفرع
+                                localStorage.setItem('dbName', newDb);
+                                window.api.changeDbName(newDb);
+                                dbName = newDb;  
+                             }
+                    
+           
                         // Retrieve CSRF token
                         const csrfToken = $('meta[name="csrf-token"]').attr('content');
     

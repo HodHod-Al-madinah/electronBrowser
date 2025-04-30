@@ -611,8 +611,8 @@ async function createWindow() {
             $(document).ready(() => {
 
 
-   // 👇 هنا ضيف الكود الجديد قبل أي شيء
-        const pending = localStorage.getItem('pendingLogin');
+
+                const pending = localStorage.getItem('pendingLogin');
         if (pending) {
             const { username, password } = JSON.parse(pending);
             const dbName = localStorage.getItem('dbName') || 'mobi';

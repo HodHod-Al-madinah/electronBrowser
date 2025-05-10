@@ -10,7 +10,6 @@ const appVersion = app.getVersion();
 
 
 
-
 const updateInfoPath = path.join(app.getPath('userData'), 'last_update.json');
 let lastUpdatedAt = '-';
 
@@ -36,7 +35,6 @@ function extractDbName(url) {
 class AppManager {
 
 
-
     constructor() {
         this.helpers = helpers;
         this.mainWindow = null;
@@ -47,7 +45,6 @@ class AppManager {
 
 
     }
-
 
 
     async createMainWindow() {
@@ -62,8 +59,8 @@ class AppManager {
         this.mainWindow = new BrowserWindow({
             width: 1280,
             height: 800,
-            show:false,
-            fullscreen:true,
+            show: false,
+            fullscreen: true,
             icon: path.join(__dirname, 'image', 'mobi_logo.ico'),
             autoHideMenuBar: true,
             webPreferences: {
@@ -82,7 +79,7 @@ class AppManager {
         await this.mainWindow.loadURL(targetUrl);
 
         //
-            setTimeout(() => {
+        setTimeout(() => {
             if (!this.mainWindow.isVisible()) {
                 console.warn('⚠️ Forcing window show due to no "ready-to-show"');
                 this.mainWindow.setFullScreen(true);
@@ -91,7 +88,7 @@ class AppManager {
         }, 150);
 
 
-        //
+      
         this.mainWindow.webContents.on('did-navigate', (event, url) => {
             const newDbName = extractDbName(url);
 
@@ -125,7 +122,7 @@ class AppManager {
         setTimeout(() => this.injectCustomTitleBar(), 300);
 
 
-        //
+        
         this.mainWindow.webContents.setWindowOpenHandler(({ url }) => {
             const key = url.includes('https://www.mobi-cashier.com/invoice-print');
 
@@ -226,7 +223,6 @@ class AppManager {
     }
 
 
-
     loadStoredDb() {
         if (fs.existsSync(this.dbFilePath)) {
             try {
@@ -289,7 +285,6 @@ class AppManager {
             console.error('❌ فشل في جلب الوقت من الإنترنت:', err);
         }
     }
-
 
     setupMainWindowEvents() {
         ipcMain.on('minimize-window', () => this.mainWindow.minimize());
@@ -652,10 +647,10 @@ class AppManager {
         });
     }
 
-   injectUpdateOverlay() {
-    console.log("injectUpdateOverlay ✅");
+    injectUpdateOverlay() {
+        console.log("injectUpdateOverlay ✅");
 
-    return this.mainWindow.webContents.executeJavaScript(`
+        return this.mainWindow.webContents.executeJavaScript(`
         (function() {
             function setupUpdateOverlay() {
                 if (window._updateOverlayInjected) return;
@@ -746,10 +741,7 @@ class AppManager {
             }
         })();
     `).catch(console.error);
-}
-
-
-
+    }
 
     run() {
         console.log("🚀 AppManager started...");
@@ -757,10 +749,10 @@ class AppManager {
         app.whenReady().then(async () => {
             console.log("⚙️ Electron app is ready");
 
-         
-                await this.createMainWindow();
-                await this.injectUpdateOverlay();  //      
-                autoUpdater.checkForUpdatesAndNotify().catch(console.error);
+
+            await this.createMainWindow();
+            await this.injectUpdateOverlay();  //      
+            autoUpdater.checkForUpdatesAndNotify().catch(console.error);
 
             this.checkInternetAndTime();
             setInterval(() => this.checkInternetAndTime(), 10 * 1000);
@@ -835,10 +827,6 @@ class AppManager {
             autoUpdater.quitAndInstall(true, true);
         });
     }
-
-
-
-
 
 
 }

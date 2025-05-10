@@ -29,11 +29,11 @@ if (fs.existsSync(updateInfoPath)) {
 
 
 function extractDbName(url) {
-        const match = url.match(/https:\/\/www\.mobi-cashier\.com\/([^/]+)\/get/);
-        return match ? match[1] : null;
-    }
+    const match = url.match(/https:\/\/www\.mobi-cashier\.com\/([^/]+)\/get/);
+    return match ? match[1] : null;
+}
 
- class AppManager {
+class AppManager {
 
 
 
@@ -62,6 +62,8 @@ function extractDbName(url) {
         this.mainWindow = new BrowserWindow({
             width: 1280,
             height: 800,
+            show:false,
+            fullscreen:true,
             icon: path.join(__dirname, 'image', 'mobi_logo.ico'),
             autoHideMenuBar: true,
             webPreferences: {
@@ -80,23 +82,22 @@ function extractDbName(url) {
         await this.mainWindow.loadURL(targetUrl);
 
         //
-        this.mainWindow.webContents.once('did-finish-load', () => {
-            this.mainWindow.show();
-            this.mainWindow.maximize();
-
-            if (!this.hasReloadedOnce) {
-                this.hasReloadedOnce = true;
-                this.mainWindow.webContents.reloadIgnoringCache();
+            setTimeout(() => {
+            if (!this.mainWindow.isVisible()) {
+                console.warn('⚠️ Forcing window show due to no "ready-to-show"');
+                this.mainWindow.setFullScreen(true);
+                this.mainWindow.show();
             }
-        });
+        }, 150);
+
 
         //
         this.mainWindow.webContents.on('did-navigate', (event, url) => {
             const newDbName = extractDbName(url);
-        
+
             if (newDbName && newDbName !== this.dbName) {
                 this.dbName = newDbName;
-        
+
                 try {
                     fs.writeFileSync(this.dbFilePath, JSON.stringify({ db: this.dbName }), 'utf8');
                     console.log("✅ Database selection saved.");
@@ -105,9 +106,9 @@ function extractDbName(url) {
                 }
             } else if (!newDbName) {
                 console.log("⚠️ No valid DB name found in URL, keeping current DB.");
-        
+
                 const storedDb = this.loadStoredDb(); // استخدم الدالة الموجودة
-        
+
                 if (this.dbName !== storedDb) {
                     console.log("🔄 Redirecting to last saved DB...");
                     this.dbName = storedDb;
@@ -115,7 +116,6 @@ function extractDbName(url) {
                 }
             }
         });
-        
 
         this.setupMainWindowEvents();
         this.setupContextMenu();
@@ -125,10 +125,10 @@ function extractDbName(url) {
         setTimeout(() => this.injectCustomTitleBar(), 300);
 
 
-//
+        //
         this.mainWindow.webContents.setWindowOpenHandler(({ url }) => {
             const key = url.includes('https://www.mobi-cashier.com/invoice-print');
-    
+
             if (key) {
                 const printWindow = new BrowserWindow({
                     width: 800,
@@ -138,15 +138,15 @@ function extractDbName(url) {
                         nodeIntegration: false,
                         contextIsolation: true,
                     },
-                    menuBarVisible: false, 
+                    menuBarVisible: false,
                 });
-    
+
                 printWindow.setMenu(null);
-    
+
                 printWindow.loadURL(url);
-    
+
                 printWindow.webContents.once('did-finish-load', () => {
-                     printWindow.webContents.executeJavaScript(`
+                    printWindow.webContents.executeJavaScript(`
                         const style = document.createElement('style');
                         style.textContent = \`
                             @media print {
@@ -175,11 +175,11 @@ function extractDbName(url) {
                         document.body.appendChild(btn);
                     `);
                 });
-    
-    
+
+
                 return { action: 'deny' };
             }
-    
+
             else if (
                 url.startsWith('https://www.mobi-cashier.com/invoice') ||
                 url.includes('https://www.mobi-cashier.com/period-report-htm')
@@ -193,20 +193,20 @@ function extractDbName(url) {
                     },
                     menuBarVisible: false,
                 });
-    
-                invoiceWindow.setMenu(null);  
+
+                invoiceWindow.setMenu(null);
                 invoiceWindow.loadURL(url);
-    
+
                 const invoiceMenuTemplate = buildInvoiceMenu(
                     convertToPDF,
                     convertToJPG,
                     promptForScaleFactor,
                     invoiceWindow
                 );
-    
+
                 const invoiceMenu = Menu.buildFromTemplate(invoiceMenuTemplate);
                 invoiceWindow.setMenu(invoiceMenu);
-    
+
                 invoiceWindow.webContents.on('did-finish-load', () => {
                     if (url.includes('/invoice/a4')) {
                         printInvoiceWindowA4(invoiceWindow, scaleFactor);
@@ -214,7 +214,7 @@ function extractDbName(url) {
                         printInvoiceWindow(invoiceWindow, scaleFactor);
                     }
                 });
-    
+
                 return { action: 'deny' };
             } else {
                 shell.openExternal(url);
@@ -241,7 +241,7 @@ function extractDbName(url) {
         }
         return "mobi";
     }
-    
+
 
     async syncSystemTime() {
         try {
@@ -300,7 +300,7 @@ function extractDbName(url) {
                 : this.mainWindow.maximize();
         });
 
-      
+
         ipcMain.on('change-db-name', (event, newDbName) => {
             if (newDbName && this.dbName !== newDbName) {
                 fs.writeFileSync(this.dbFilePath, JSON.stringify({ db: newDbName }));
@@ -310,7 +310,7 @@ function extractDbName(url) {
                 }
             }
         });
-        
+
 
 
         ipcMain.on('close-window', () => this.mainWindow.close());
@@ -378,7 +378,6 @@ function extractDbName(url) {
             setTimeout(() => {
                 this.mainWindow.webContents.executeJavaScript(`
                     if (!document.getElementById('customTitleBar') && document.body) {
-    
                         const titleBar = document.createElement('div');
                         titleBar.id = 'customTitleBar';
                         titleBar.style.position = 'fixed';
@@ -393,12 +392,10 @@ function extractDbName(url) {
                         titleBar.style.zIndex = '1000';
                         titleBar.style.webkitAppRegion = 'drag';
                         titleBar.style.padding = '0';
-    
                         const buttons = document.createElement('div');
                         buttons.style.display = 'flex';
                         buttons.style.webkitAppRegion = 'no-drag';
                         buttons.style.marginLeft = '0';
-    
                         const createButton = (label, title, callback) => {
                             const btn = document.createElement('button');
                             btn.innerHTML = label;
@@ -418,13 +415,11 @@ function extractDbName(url) {
                             btn.onclick = callback;
                             return btn;
                         };
-    
                         buttons.appendChild(createButton('✕', 'Close', () => window.electron.ipcRenderer.send('close-window')));
                         buttons.appendChild(createButton('□', 'Maximize', () => window.electron.ipcRenderer.send('maximize-window')));
                         buttons.appendChild(createButton('−', 'Minimize', () => window.electron.ipcRenderer.send('minimize-window')));
                         buttons.appendChild(createButton('↻', 'Reload', () => window.location.reload()));
                         buttons.appendChild(createButton('🖨️', 'Set Scale Factor', () => window.electron.ipcRenderer.invoke('prompt-scale-factor')));
-    
                         const title = document.createElement('div');
                         title.textContent = "mobiCashier  v${appVersion}  (${lastUpdatedAt})";
                         title.style.fontSize = '12px';
@@ -432,39 +427,46 @@ function extractDbName(url) {
                         title.style.fontWeight = 'normal';
                         title.style.marginLeft = '5px';
                         title.style.webkitAppRegion = 'drag';
-    
                         const timeDisplay = document.createElement('div');
                         timeDisplay.id = 'timeDisplay';
                         timeDisplay.style.position = 'absolute';
                         timeDisplay.style.left = '50%';
                         timeDisplay.style.transform = 'translateX(-50%)';
-                        timeDisplay.style.fontSize = '15px';
-                        timeDisplay.style.color = 'blue';
-                        timeDisplay.style.fontWeight = 'normal';
+                        timeDisplay.style.fontSize = '14px';
+                        timeDisplay.style.fontFamily = 'Tahoma, Arial, sans-serif';
+                        timeDisplay.style.color = '#1E40AF';    
+                         timeDisplay.style.padding = '2px 10px';
+                        timeDisplay.style.borderRadius = '8px';
+                        timeDisplay.style.boxShadow = '0 1px 5px rgba(0, 0, 0, 0.1)';
+                        timeDisplay.style.fontWeight = 'bold';
+                        timeDisplay.style.whiteSpace = 'nowrap';
                         timeDisplay.style.webkitAppRegion = 'no-drag';
                         titleBar.appendChild(timeDisplay);
-    
-                        function updateTime() {
-                            const now = new Date();
-                            const weekday = now.toLocaleDateString('ar-KW', { weekday: 'long' });
-                            const date = now.toLocaleDateString('ar-KW');
-                            const time = now.toLocaleTimeString('ar-KW');
-                             timeDisplay.textContent = weekday + "    " + date + "    " + time;
-
-                        }
-    
+                                 function updateTime() {
+                                           const now = new Date();
+                                            const weekday = now.toLocaleDateString('ar-EG', { weekday: 'long' });
+                                            const day = now.getDate().toString().padStart(2, '0');
+                                            const month = (now.getMonth() + 1).toString().padStart(2, '0'); // +1 لأن الأشهر تبدأ من 0
+                                            const year = now.getFullYear();
+                                             const date = day + "/" + month + "/" + year;
+                                            let hours = now.getHours();
+                                            const minutes = now.getMinutes().toString().padStart(2, '0');
+                                            const seconds = now.getSeconds().toString().padStart(2, '0');
+                                                    const period = hours >= 12 ? 'PM' : 'AM';
+                                                    hours = hours % 12;
+                                                    hours = hours === 0 ? 12 : hours;
+                                                    hours = hours.toString().padStart(2, '0');
+                                                    const time = hours +":"+minutes+":"+seconds+" "+period;
+                                        timeDisplay.textContent = weekday + "    " + date + "    " + time;
+                                    }
                         updateTime();
                         setInterval(updateTime, 1000);
-    
                         titleBar.appendChild(buttons);
                         titleBar.appendChild(title);
-    
                         document.body.style.paddingTop = '25px';
                         document.body.style.height = 'calc(100vh - 25px)';
                         document.body.style.overflowY = 'auto';
-    
                         document.body.insertBefore(titleBar, document.body.firstChild);
-    
                         window.onfocus = () => {
                             titleBar.style.background = '#e5e5e5';
                         };
@@ -650,14 +652,23 @@ function extractDbName(url) {
         });
     }
 
-    injectUpdateOverlay() {
-        this.mainWindow.webContents.on('did-finish-load', () => {
-           
-            this.mainWindow.webContents.executeJavaScript(`
+   injectUpdateOverlay() {
+    console.log("injectUpdateOverlay ✅");
+
+    return this.mainWindow.webContents.executeJavaScript(`
+        (function() {
+            function setupUpdateOverlay() {
+                if (window._updateOverlayInjected) return;
+                window._updateOverlayInjected = true;
+                
+                if (!window.electron || !window.electron.ipcRenderer) {
+                    console.warn("⚠️ ipcRenderer not available");
+                    return;
+                }
+
                 console.log("🧪 Injected overlay listener ✅");
-            
+
                 window.electron.ipcRenderer.on('update-started', () => {
-                    console.log("📦 update-started triggered!");
                     let overlay = document.getElementById('updateOverlay');
                     if (!overlay) {
                         overlay = document.createElement('div');
@@ -667,92 +678,98 @@ function extractDbName(url) {
                         overlay.style.left = 0;
                         overlay.style.width = '100%';
                         overlay.style.height = '100%';
-                        overlay.style.backgroundColor = 'rgba(0,0,0,0.6)';
+                        overlay.style.backgroundColor = 'rgba(0, 0, 0, 0.7)';
                         overlay.style.display = 'flex';
+                        overlay.style.flexDirection = 'column';
                         overlay.style.alignItems = 'center';
                         overlay.style.justifyContent = 'center';
                         overlay.style.zIndex = 9999;
-            
+
                         const messageBox = document.createElement('div');
-                        messageBox.style.backgroundColor = '#ffffff';  
+                        messageBox.style.backgroundColor = '#ffffff';
                         messageBox.style.padding = '30px 40px';
                         messageBox.style.borderRadius = '12px';
                         messageBox.style.boxShadow = '0 8px 24px rgba(0,0,0,0.5)';
                         messageBox.style.textAlign = 'center';
-                        messageBox.style.color = '#00ff99';
-                        messageBox.style.minWidth = '320px';
-                        messageBox.style.maxWidth = '90%';
-            
+                        messageBox.style.color = '#333';
+                        messageBox.style.minWidth = '300px';
+                        messageBox.style.fontFamily = 'Tahoma, sans-serif';
+
                         const statusMsg = document.createElement('div');
                         statusMsg.id = 'updateStatus';
                         statusMsg.textContent = '📦 جاري تحميل التحديث الجديد...';
                         statusMsg.style.fontSize = '20px';
                         statusMsg.style.marginBottom = '15px';
-            
+                        statusMsg.style.color = '#2563EB';
+
                         const progress = document.createElement('div');
                         progress.id = 'updateProgress';
                         progress.textContent = '0%';
                         progress.style.fontSize = '18px';
+                        progress.style.color = '#16a34a';
                         progress.style.marginTop = '5px';
-            
+
                         messageBox.appendChild(statusMsg);
                         messageBox.appendChild(progress);
                         overlay.appendChild(messageBox);
-            
                         document.body.appendChild(overlay);
                     }
                 });
-            
+
                 window.electron.ipcRenderer.on('download-progress', (percent) => {
                     const progressEl = document.getElementById('updateProgress');
-                    if (progressEl) {
-                        progressEl.textContent = percent + '%';
-                    }
+                    if (progressEl) progressEl.textContent = percent + '%';
                 });
-            
+
                 window.electron.ipcRenderer.on('update-ready', () => {
-                    const statusMsg = document.getElementById('updateStatus');
-                    const progressEl = document.getElementById('updateProgress');
-            
-                    if (statusMsg) statusMsg.remove();
-                    if (progressEl) progressEl.remove();
-            
                     const overlay = document.getElementById('updateOverlay');
                     if (overlay) {
+                        overlay.innerHTML = '';
                         const doneMsg = document.createElement('div');
-                        doneMsg.textContent = '✅ تم تحميل التحديث، سيتم إغلاق التطبيق...';
+                        doneMsg.textContent = '✅ جاري تحميل التحديث، سيتم إغلاق التطبيق...';
                         doneMsg.style.fontSize = '22px';
-                        doneMsg.style.color = '#00ff99';
+                        doneMsg.style.color = '#22c55e';
                         doneMsg.style.marginTop = '10px';
                         overlay.appendChild(doneMsg);
-            
+
                         setTimeout(() => {
                             window.close();
                         }, 2000);
                     }
                 });
-            `);
-            
-        });
-    }
+            }
+
+            if (document.readyState === 'complete') {
+                setupUpdateOverlay();
+            } else {
+                window.addEventListener('load', setupUpdateOverlay);
+            }
+        })();
+    `).catch(console.error);
+}
+
+
+
 
     run() {
         console.log("🚀 AppManager started...");
-    
+
         app.whenReady().then(async () => {
             console.log("⚙️ Electron app is ready");
-    
-            await this.createMainWindow();
-            autoUpdater.checkForUpdatesAndNotify().catch(console.error);
+
+         
+                await this.createMainWindow();
+                await this.injectUpdateOverlay();  //      
+                autoUpdater.checkForUpdatesAndNotify().catch(console.error);
 
             this.checkInternetAndTime();
             setInterval(() => this.checkInternetAndTime(), 10 * 1000);
-    
-    
-             autoUpdater.on('checking-for-update', () => {
+
+
+            autoUpdater.on('checking-for-update', () => {
                 console.log('🔍 Checking for updates...');
             });
-    
+
             autoUpdater.on('update-available', (info) => {
                 console.log(`✅ Update available: v${info.version}`);
                 if (this.mainWindow && this.mainWindow.webContents) {
@@ -762,26 +779,26 @@ function extractDbName(url) {
                     console.log("❌ mainWindow not ready!");
                 }
             });
-            
-            
-    
+
+
+
             autoUpdater.on('update-not-available', () => {
                 console.log('ℹ️ No update available.');
             });
-    
+
             autoUpdater.on('download-progress', (progressObj) => {
                 const percent = Math.floor(progressObj.percent);
                 console.log(`⬇️ Download progress: ${percent}%`);
                 this.mainWindow.webContents.send('download-progress', percent);
             });
-    
+
             autoUpdater.on('update-downloaded', (info) => {
                 console.log(`🎉 Update downloaded: v${info.version}`);
                 this.mainWindow.webContents.send('update-ready', info.version);
-    
+
                 const updateInfoPath = path.join(app.getPath('userData'), 'last_update.json');
                 const now = new Date().toISOString();
-    
+
                 try {
                     fs.writeFileSync(updateInfoPath, JSON.stringify({
                         version: info.version,
@@ -792,33 +809,33 @@ function extractDbName(url) {
                     console.error("❌ Failed to save last update info:", err);
                 }
             });
-    
+
             autoUpdater.on('error', (error) => {
                 console.error('❌ AutoUpdater error:', error);
             });
         });
-    
+
         app.on('window-all-closed', () => {
             if (process.platform !== 'darwin') app.quit();
         });
-    
+
         app.on('activate', () => {
             if (BrowserWindow.getAllWindows().length === 0) {
                 this.createMainWindow();
             }
         });
-    
+
         ipcMain.on('restart-app', () => {
             console.log("🧪 Force quitting app...");
-            app.relaunch(); 
-            app.exit(0);    
+            app.relaunch();
+            app.exit(0);
         });
-    
+
         ipcMain.on('install-update', () => {
             autoUpdater.quitAndInstall(true, true);
         });
     }
-    
+
 
 
 

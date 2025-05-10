@@ -56,12 +56,26 @@ class AppManager {
         const rawSerial = `${systemInfo.processorId}-${systemInfo.uuid}-${systemInfo.motherboardSerial}`;
         const serial = rawSerial.replace(/\//g, '');
 
-        this.mainWindow = new BrowserWindow({
+
+        const splash = new BrowserWindow({
+            width: 400,
+            height: 300,
+            frame: false,
+            transparent: true,
+            alwaysOnTop: true,
+            resizable: false,
+            show: true,
+            center: true,
+        });
+
+        splash.loadFile(path.join(__dirname, 'public', 'splash.html'));
+
+
+         this.mainWindow = new BrowserWindow({
             width: 1280,
             height: 800,
             show: false,
-            fullscreen: true,
-            icon: path.join(__dirname, 'image', 'mobi_logo.ico'),
+             icon: path.join(__dirname, 'image', 'mobi_logo.ico'),
             autoHideMenuBar: true,
             webPreferences: {
                 nodeIntegration: false,
@@ -78,17 +92,30 @@ class AppManager {
         const targetUrl = `https://www.mobi-cashier.com/${this.dbName}/get/`;
         await this.mainWindow.loadURL(targetUrl);
 
-        //
-        setTimeout(() => {
-            if (!this.mainWindow.isVisible()) {
-                console.warn('⚠️ Forcing window show due to no "ready-to-show"');
-                this.mainWindow.setFullScreen(true);
-                this.mainWindow.show();
+        let splashClosed = false;
+
+        const closeSplash = () => {
+            if (!splashClosed) {
+                splashClosed = true;
+                if (!splash.isDestroyed()) splash.close();
+                 this.mainWindow.maximize();
             }
-        }, 150);
+        };
+
+        this.mainWindow.webContents.once('did-finish-load', () => {
+            console.log("✅ Page did-finish-load, showing main window.");
+            closeSplash();
+        });
 
 
-      
+
+        setTimeout(() => {
+            console.warn("⏱ Timeout reached - forcing splash close.");
+            closeSplash();
+        }, 4000);
+
+
+
         this.mainWindow.webContents.on('did-navigate', (event, url) => {
             const newDbName = extractDbName(url);
 
@@ -122,7 +149,7 @@ class AppManager {
         setTimeout(() => this.injectCustomTitleBar(), 300);
 
 
-        
+
         this.mainWindow.webContents.setWindowOpenHandler(({ url }) => {
             const key = url.includes('https://www.mobi-cashier.com/invoice-print');
 
@@ -430,7 +457,7 @@ class AppManager {
                         timeDisplay.style.fontSize = '14px';
                         timeDisplay.style.fontFamily = 'Tahoma, Arial, sans-serif';
                         timeDisplay.style.color = '#1E40AF';    
-                         timeDisplay.style.padding = '2px 10px';
+                        timeDisplay.style.padding = '2px 10px';
                         timeDisplay.style.borderRadius = '8px';
                         timeDisplay.style.boxShadow = '0 1px 5px rgba(0, 0, 0, 0.1)';
                         timeDisplay.style.fontWeight = 'bold';

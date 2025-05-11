@@ -1,6 +1,6 @@
 {
   "name": "mobi-cashier",
-  "version": "1.0.18",
+  "version": "1.0.20",
   "main": "main.js",
   "description": "A browser-based cashier application   ",
   "author": "Hammam Alageed",
@@ -40,13 +40,14 @@
       "helpers/**/*",
       "utils/**/*",
       "public/**/*",
+      "app.asar",
       "image/**/*",
       "node_modules/**/*",
       "package.json"
     ],
     "win": {
       "target": "nsis",
-      "icon": "public/mobi_logo.ico",
+      "icon": "image/mobi_logo.ico",
       "requestedExecutionLevel": "requireAdministrator"
     },
     "nsis": {

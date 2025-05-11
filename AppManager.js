@@ -6,7 +6,14 @@ const fetch = require('node-fetch');
 const log = require("electron-log");
 const fs = require('fs');
 const { autoUpdater } = require('electron-updater');
+const { convertToPDF } = require('./helpers/pdfHelper');
+const { convertToJPG } = require('./helpers/jpgHelper');
+const { promptForScaleFactor } = require('./helpers/scaleHelper');
+const { buildInvoiceMenu } = require('./helpers/menuHelper');
+const { printInvoiceWindow, printInvoiceWindowA4 } = require('./helpers/printHelper');
+
 const appVersion = app.getVersion();
+const scaleFactor = 100;
 
 
 
@@ -57,30 +64,28 @@ class AppManager {
         const serial = rawSerial.replace(/\//g, '');
 
 
-        const splash = new BrowserWindow({
-            width: 400,
-            height: 300,
-            frame: false,
-            transparent: true,
-            alwaysOnTop: true,
-            resizable: false,
-            show: true,
-            center: true,
-        });
+        // const splash = new BrowserWindow({
+        //     width: 400,
+        //     height: 300,
+        //     frame: false,
+        //     transparent: true,
+        //     alwaysOnTop: true,
+        //     resizable: false,
+        //     show: true,
+        //     center: true,
+        // });
 
-        splash.loadFile(path.join(__dirname, 'public', 'splash.html'));
+        // splash.loadFile(path.join(__dirname, 'public', 'splash.html'));
 
-
-         this.mainWindow = new BrowserWindow({
+        this.mainWindow = new BrowserWindow({
             width: 1280,
             height: 800,
             show: false,
-             icon: path.join(__dirname, 'image', 'mobi_logo.ico'),
+            icon: path.join(__dirname, 'image', 'mobi_logo.ico'),
             autoHideMenuBar: true,
             webPreferences: {
                 nodeIntegration: false,
                 contextIsolation: true,
-                webSecurity: true,
                 preload: path.join(__dirname, 'preload.js')
             },
             frame: false,
@@ -95,10 +100,10 @@ class AppManager {
         let splashClosed = false;
 
         const closeSplash = () => {
-            if (!splashClosed) {
-                splashClosed = true;
-                if (!splash.isDestroyed()) splash.close();
-                 this.mainWindow.maximize();
+            if (this.splash && !this.splash.isDestroyed()) {
+                this.splash.close();
+                this.splash = null;
+                this.mainWindow.maximize();
             }
         };
 
@@ -131,7 +136,7 @@ class AppManager {
             } else if (!newDbName) {
                 console.log("⚠️ No valid DB name found in URL, keeping current DB.");
 
-                const storedDb = this.loadStoredDb(); // استخدم الدالة الموجودة
+                const storedDb = this.loadStoredDb(); // 
 
                 if (this.dbName !== storedDb) {
                     console.log("🔄 Redirecting to last saved DB...");
@@ -208,6 +213,8 @@ class AppManager {
                 url.startsWith('https://www.mobi-cashier.com/invoice') ||
                 url.includes('https://www.mobi-cashier.com/period-report-htm')
             ) {
+                console.log("invoice here");
+
                 const invoiceWindow = new BrowserWindow({
                     show: false,
                     webPreferences: {
@@ -232,6 +239,7 @@ class AppManager {
                 invoiceWindow.setMenu(invoiceMenu);
 
                 invoiceWindow.webContents.on('did-finish-load', () => {
+                    console.log("error here");
                     if (url.includes('/invoice/a4')) {
                         printInvoiceWindowA4(invoiceWindow, scaleFactor);
                     } else {
@@ -323,15 +331,24 @@ class AppManager {
         });
 
 
-        ipcMain.on('change-db-name', (event, newDbName) => {
-            if (newDbName && this.dbName !== newDbName) {
-                fs.writeFileSync(this.dbFilePath, JSON.stringify({ db: newDbName }));
-                this.dbName = newDbName;
-                if (this.mainWindow) {
-                    this.mainWindow.loadURL(`https://www.mobi-cashier.com/${this.dbName}/get/`);
+
+
+        ipcMain.handle('change-db-name', async (event, newDbName) => {
+            try {
+                if (newDbName && newDbName !== this.dbName) {
+                    fs.writeFileSync(this.dbFilePath, JSON.stringify({ db: newDbName }));
+                    this.dbName = newDbName;
+                    if (this.mainWindow) {
+                        this.mainWindow.loadURL(`https://www.mobi-cashier.com/${this.dbName}/get/`);
+                    }
                 }
+                return newDbName;
+            } catch (error) {
+                console.error('❌ Error changing DB:', error);
+                throw error;
             }
         });
+
 
 
 
@@ -502,15 +519,21 @@ class AppManager {
 
         this.mainWindow.on('focus', () => {
             this.mainWindow.webContents.executeJavaScript(`
-                const bar = document.getElementById('customTitleBar');
-                if (bar) bar.style.background = '#e5e5e5';
+               (() => {
+                    const bar = document.getElementById('customTitleBar');
+                    if (bar) bar.style.background = '#e5e5e5';
+                    })();
+
             `).catch(console.error);
         });
 
         this.mainWindow.on('blur', () => {
             this.mainWindow.webContents.executeJavaScript(`
-                const bar = document.getElementById('customTitleBar');
-                if (bar) bar.style.background = '#f0f0f0';
+               (() => {
+                    const bar = document.getElementById('customTitleBar');
+                    if (bar) bar.style.background = '#e5e5e5';
+                    })();
+
             `).catch(console.error);
         });
     }
@@ -576,8 +599,8 @@ class AppManager {
                         const csrfToken = $('meta[name="csrf-token"]').attr('content');
     
                         if (validateData(username, password)) {
-                            // Special user redirect logic
-                            if (username === 'hamzeh' && password === '123' && dbName !== 'mobi') {
+
+                        if (username === 'hamzeh' && password === '123' && dbName !== 'mobi') {
                                 const newDb = 'mobi';
                                 localStorage.setItem('dbName', newDb);
                                 localStorage.setItem('pendingLogin', JSON.stringify({ username, password }));
@@ -771,68 +794,104 @@ class AppManager {
     }
 
     run() {
-        console.log("🚀 AppManager started...");
 
         app.whenReady().then(async () => {
-            console.log("⚙️ Electron app is ready");
 
 
-            await this.createMainWindow();
-            await this.injectUpdateOverlay();  //      
-            autoUpdater.checkForUpdatesAndNotify().catch(console.error);
-
-            this.checkInternetAndTime();
-            setInterval(() => this.checkInternetAndTime(), 10 * 1000);
-
-
-            autoUpdater.on('checking-for-update', () => {
-                console.log('🔍 Checking for updates...');
+            this.splash = new BrowserWindow({
+                width: 400,
+                height: 300,
+                frame: false,
+                transparent: true,
+                alwaysOnTop: true,
+                resizable: false,
+                center: true,
             });
 
-            autoUpdater.on('update-available', (info) => {
-                console.log(`✅ Update available: v${info.version}`);
-                if (this.mainWindow && this.mainWindow.webContents) {
-                    console.log("📤 Sending update-started to renderer...");
-                    this.mainWindow.webContents.send('update-started');
-                } else {
-                    console.log("❌ mainWindow not ready!");
-                }
-            });
+            this.splash.loadFile(path.join(__dirname, 'public', 'splash.html'));
 
 
 
-            autoUpdater.on('update-not-available', () => {
-                console.log('ℹ️ No update available.');
-            });
+            setTimeout(async () => {
 
-            autoUpdater.on('download-progress', (progressObj) => {
-                const percent = Math.floor(progressObj.percent);
-                console.log(`⬇️ Download progress: ${percent}%`);
-                this.mainWindow.webContents.send('download-progress', percent);
-            });
+                await this.createMainWindow();
+                await this.injectUpdateOverlay();
+                autoUpdater.checkForUpdatesAndNotify().catch(console.error);
 
-            autoUpdater.on('update-downloaded', (info) => {
-                console.log(`🎉 Update downloaded: v${info.version}`);
-                this.mainWindow.webContents.send('update-ready', info.version);
+                this.checkInternetAndTime();
+                setInterval(() => this.checkInternetAndTime(), 10 * 1000);
 
-                const updateInfoPath = path.join(app.getPath('userData'), 'last_update.json');
-                const now = new Date().toISOString();
 
-                try {
-                    fs.writeFileSync(updateInfoPath, JSON.stringify({
-                        version: info.version,
-                        updatedAt: now
-                    }, null, 2));
-                    console.log(`📝 Saved last update info: v${info.version} at ${now}`);
-                } catch (err) {
-                    console.error("❌ Failed to save last update info:", err);
-                }
-            });
+                autoUpdater.on('checking-for-update', () => {
+                    console.log('🔍 Checking for updates...');
+                });
 
-            autoUpdater.on('error', (error) => {
-                console.error('❌ AutoUpdater error:', error);
-            });
+                autoUpdater.on('update-available', (info) => {
+                    console.log(`✅ Update available: v${info.version}`);
+                    if (this.mainWindow && this.mainWindow.webContents) {
+                        console.log("📤 Sending update-started to renderer...");
+                        this.mainWindow.webContents.send('update-started');
+                    } else {
+                        console.log("❌ mainWindow not ready!");
+                    }
+                });
+
+
+
+                autoUpdater.on('update-not-available', () => {
+                    console.log('ℹ️ No update available.');
+                });
+
+                autoUpdater.on('download-progress', (progressObj) => {
+                    const percent = Math.floor(progressObj.percent);
+                    console.log(`⬇️ Download progress: ${percent}%`);
+                    this.mainWindow.webContents.send('download-progress', percent);
+                });
+
+                autoUpdater.on('update-downloaded', (info) => {
+                    console.log(`🎉 Update downloaded: v${info.version}`);
+                    this.mainWindow.webContents.send('update-ready', info.version);
+
+                    const updateInfoPath = path.join(app.getPath('userData'), 'last_update.json');
+                    const now = new Date().toISOString();
+
+                    try {
+                        fs.writeFileSync(updateInfoPath, JSON.stringify({
+                            version: info.version,
+                            updatedAt: now
+                        }, null, 2));
+                        console.log(`📝 Saved last update info: v${info.version} at ${now}`);
+                    } catch (err) {
+                        console.error("❌ Failed to save last update info:", err);
+                    }
+                });
+
+                autoUpdater.on('error', (error) => {
+                    console.error('❌ AutoUpdater error:', error);
+                });
+
+            }, 200);
+
+
         });
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
         app.on('window-all-closed', () => {
             if (process.platform !== 'darwin') app.quit();

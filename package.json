@@ -17,8 +17,7 @@
   ],
   "devDependencies": {
     "electron": "^32.2.0",
-    "electron-builder": "^24.13.3",
-    "electron-reload": "^2.0.0-alpha.1"
+    "electron-builder": "^24.13.3"
   },
   "dependencies": {
     "electron-log": "^5.3.2",
@@ -33,6 +32,8 @@
   "build": {
     "appId": "com.hodhod.browser",
     "productName": "mobiCashier",
+    "compression": "maximum",
+    "asar": true,
     "files": [
       "main.js",
       "AppManager.js",
@@ -40,10 +41,8 @@
       "helpers/**/*",
       "utils/**/*",
       "public/**/*",
-      "app.asar",
       "image/**/*",
-      "node_modules/**/*",
-      "package.json"
+      "!node_modules/{devDependencies,optionalDependencies}/**/*"
     ],
     "win": {
       "target": "nsis",
@@ -51,7 +50,7 @@
       "requestedExecutionLevel": "requireAdministrator"
     },
     "nsis": {
-      "differentialPackage": true
+      "differentialPackage": false
     },
     "publish": [
       {

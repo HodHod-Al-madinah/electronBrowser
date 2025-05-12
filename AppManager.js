@@ -15,8 +15,6 @@ const { printInvoiceWindow, printInvoiceWindowA4 } = require('./helpers/printHel
 const appVersion = app.getVersion();
 const scaleFactor = 100;
 
-
-
 const updateInfoPath = path.join(app.getPath('userData'), 'last_update.json');
 let lastUpdatedAt = '-';
 
@@ -52,7 +50,6 @@ class AppManager {
 
 
     }
-
 
     async createMainWindow() {
         console.log("🪟 createMainWindow called...");
@@ -257,7 +254,6 @@ class AppManager {
 
     }
 
-
     loadStoredDb() {
         if (fs.existsSync(this.dbFilePath)) {
             try {
@@ -272,7 +268,6 @@ class AppManager {
         }
         return "mobi";
     }
-
 
     async syncSystemTime() {
         try {
@@ -810,8 +805,6 @@ class AppManager {
 
             this.splash.loadFile(path.join(__dirname, 'public', 'splash.html'));
 
-
-
             setTimeout(async () => {
 
                 await this.createMainWindow();
@@ -820,7 +813,6 @@ class AppManager {
 
                 this.checkInternetAndTime();
                 setInterval(() => this.checkInternetAndTime(), 10 * 1000);
-
 
                 autoUpdater.on('checking-for-update', () => {
                     console.log('🔍 Checking for updates...');
@@ -835,8 +827,6 @@ class AppManager {
                         console.log("❌ mainWindow not ready!");
                     }
                 });
-
-
 
                 autoUpdater.on('update-not-available', () => {
                     console.log('ℹ️ No update available.');
@@ -871,7 +861,6 @@ class AppManager {
                 });
 
             }, 200);
-
 
         });
 
@@ -909,7 +898,7 @@ class AppManager {
             app.exit(0);
         });
 
-        ipcMain.on('install-update', () => {
+        ipcMain.on('clsall-update', () => {
             autoUpdater.quitAndInstall(true, true);
         });
     }

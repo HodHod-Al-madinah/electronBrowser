@@ -805,6 +805,8 @@ class AppManager {
 
             this.splash.loadFile(path.join(__dirname, 'public', 'splash.html'));
 
+
+
             setTimeout(async () => {
 
                 await this.createMainWindow();
@@ -863,6 +865,56 @@ class AppManager {
             }, 200);
 
         });
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

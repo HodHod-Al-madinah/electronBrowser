@@ -61,19 +61,6 @@ class AppManager {
         const serial = rawSerial.replace(/\//g, '');
 
 
-        // const splash = new BrowserWindow({
-        //     width: 400,
-        //     height: 300,
-        //     frame: false,
-        //     transparent: true,
-        //     alwaysOnTop: true,
-        //     resizable: false,
-        //     show: true,
-        //     center: true,
-        // });
-
-        // splash.loadFile(path.join(__dirname, 'public', 'splash.html'));
-
         this.mainWindow = new BrowserWindow({
             width: 1280,
             height: 800,
@@ -91,7 +78,7 @@ class AppManager {
 
         this.injectLoginHandler(serial);
 
-        const targetUrl = `https://www.mobi-cashier.com/${this.dbName}/get/`;
+        const targetUrl = `http://127.0.0.1:8000/${this.dbName}/get/`;
         await this.mainWindow.loadURL(targetUrl);
 
         let splashClosed = false;
@@ -138,7 +125,7 @@ class AppManager {
                 if (this.dbName !== storedDb) {
                     console.log("🔄 Redirecting to last saved DB...");
                     this.dbName = storedDb;
-                    this.mainWindow.loadURL(`https://www.mobi-cashier.com/${this.dbName}/get/`);
+                    this.mainWindow.loadURL(`http://127.0.0.1:8000/${this.dbName}/get/`);
                 }
             }
         });
@@ -153,7 +140,7 @@ class AppManager {
 
 
         this.mainWindow.webContents.setWindowOpenHandler(({ url }) => {
-            const key = url.includes('https://www.mobi-cashier.com/invoice-print');
+            const key = url.includes('http://127.0.0.1:8000/invoice-print');
 
             if (key) {
                 const printWindow = new BrowserWindow({
@@ -207,8 +194,8 @@ class AppManager {
             }
 
             else if (
-                url.startsWith('https://www.mobi-cashier.com/invoice') ||
-                url.includes('https://www.mobi-cashier.com/period-report-htm')
+                url.startsWith('http://127.0.0.1:8000/invoice') ||
+                url.includes('http://127.0.0.1:8000/period-report-htm')
             ) {
                 console.log("invoice here");
 
@@ -334,7 +321,7 @@ class AppManager {
                     fs.writeFileSync(this.dbFilePath, JSON.stringify({ db: newDbName }));
                     this.dbName = newDbName;
                     if (this.mainWindow) {
-                        this.mainWindow.loadURL(`https://www.mobi-cashier.com/${this.dbName}/get/`);
+                        this.mainWindow.loadURL(`http://127.0.0.1:8000/${this.dbName}/get/`);
                     }
                 }
                 return newDbName;
@@ -601,7 +588,7 @@ class AppManager {
                                 localStorage.setItem('pendingLogin', JSON.stringify({ username, password }));
                                 window.api.changeDbName(newDb);
                                 setTimeout(() => {
-                                    window.location.href = "https://www.mobi-cashier.com/" + newDb + "/get/";
+                                    window.location.href = "http://127.0.0.1:8000/" + newDb + "/get/";
                                 }, 300);
                                 return;
                             }

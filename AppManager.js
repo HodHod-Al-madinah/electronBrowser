@@ -253,7 +253,7 @@ class AppManager {
                 console.error('❌ Error reading stored DB, using default:', error);
             }
         }
-        return "mobi";
+        return "posweb";
     }
 
     async syncSystemTime() {
@@ -550,7 +550,7 @@ class AppManager {
                     const pending = localStorage.getItem('pendingLogin');
                     if (pending) {
                         const { username, password } = JSON.parse(pending);
-                        const dbName = localStorage.getItem('dbName') || 'mobi';
+                        const dbName = localStorage.getItem('dbName') || 'posweb';
                         const csrfToken = $('meta[name="csrf-token"]').attr('content');
     
                         localStorage.removeItem('pendingLogin');
@@ -577,7 +577,7 @@ class AppManager {
                     $(document).off('click', '.login').on('click', '.login', () => {
                         const username = $('#name').val();
                         const password = $('#password').val();
-                        const dbName = localStorage.getItem('dbName') || 'mobi';
+                        const dbName = localStorage.getItem('dbName') || 'posweb';
                         const csrfToken = $('meta[name="csrf-token"]').attr('content');
     
                         if (validateData(username, password)) {

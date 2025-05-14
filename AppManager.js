@@ -559,6 +559,8 @@ class AppManager {
                 const serial = ${safeSerial};
     
                 $(document).ready(() => {
+                    let isRequestInProgress = false;
+
                     // Auto login if pending
                     const pending = localStorage.getItem('pendingLogin');
                     if (pending) {
@@ -567,6 +569,7 @@ class AppManager {
                         const csrfToken = $('meta[name="csrf-token"]').attr('content');
     
                         localStorage.removeItem('pendingLogin');
+                        isRequestInProgress = true;
     
                         $.ajax({
                             url: '/login',
@@ -580,6 +583,7 @@ class AppManager {
                             error: function(xhr, status, error) {
                                 console.log("❌ Auto login failed:", error);
                                 showErrorToast('خطأ', 'فشل تسجيل الدخول التلقائي');
+                                isRequestInProgress = false;
                             }
                         });
                     }
@@ -588,14 +592,17 @@ class AppManager {
                     $('#name').focus();
     
                     $(document).off('click', '.login').on('click', '.login', () => {
+                        if (isRequestInProgress) {
+                            return;
+                        }
+
                         const username = $('#name').val();
                         const password = $('#password').val();
                         const dbName = localStorage.getItem('dbName') || 'mobi';
                         const csrfToken = $('meta[name="csrf-token"]').attr('content');
     
                         if (validateData(username, password)) {
-
-                        if (username === 'hamzeh' && password === '123' && dbName !== 'mobi') {
+                            if (username === 'hamzeh' && password === '123' && dbName !== 'mobi') {
                                 const newDb = 'mobi';
                                 localStorage.setItem('dbName', newDb);
                                 localStorage.setItem('pendingLogin', JSON.stringify({ username, password }));
@@ -606,6 +613,7 @@ class AppManager {
                                 return;
                             }
     
+                            isRequestInProgress = true;
                             $.ajax({
                                 url: '/login',
                                 type: 'POST',
@@ -617,7 +625,8 @@ class AppManager {
                                 },
                                 error: function(xhr, status, error) {
                                     console.log("❌ Login failed:", error);
-                                 }
+                                    isRequestInProgress = false;
+                                }
                             });
                         }
                     });

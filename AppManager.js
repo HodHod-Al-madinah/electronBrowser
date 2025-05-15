@@ -625,6 +625,7 @@ class AppManager {
                                 },
                                 error: function(xhr, status, error) {
                                     console.log("❌ Login failed:", error);
+                                    showErrorToast('خطأ', 'فشل تسجيل الدخول');
                                     isRequestInProgress = false;
                                 }
                             });

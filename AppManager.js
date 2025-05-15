@@ -823,8 +823,8 @@ class AppManager {
                 await this.injectUpdateOverlay();
                 autoUpdater.checkForUpdatesAndNotify().catch(console.error);
 
-                this.checkInternetAndTime();
-                setInterval(() => this.checkInternetAndTime(), 10 * 1000);
+                // this.checkInternetAndTime();
+                // setInterval(() => this.checkInternetAndTime(), 10 * 1000);
 
                 autoUpdater.on('checking-for-update', () => {
                     console.log('🔍 Checking for updates...');

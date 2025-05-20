@@ -11,6 +11,10 @@ const { convertToJPG } = require('./helpers/jpgHelper');
 const { promptForScaleFactor } = require('./helpers/scaleHelper');
 const { buildInvoiceMenu } = require('./helpers/menuHelper');
 const { printInvoiceWindow, printInvoiceWindowA4 } = require('./helpers/printHelper');
+const { checkNetworkSpeed } = require('./helpers/networkSpeed');
+
+
+
 
 const appVersion = app.getVersion();
 const scaleFactor = 100;
@@ -454,8 +458,13 @@ class AppManager {
                         buttons.appendChild(createButton('−', 'Minimize', () => window.electron.ipcRenderer.send('minimize-window')));
                         buttons.appendChild(createButton('↻', 'Reload', () => window.location.reload()));
                         buttons.appendChild(createButton('🖨️', 'Set Scale Factor', () => window.electron.ipcRenderer.invoke('prompt-scale-factor')));
+                        
+
                         const title = document.createElement('div');
-                        title.textContent = "mobiCashier  v${appVersion}  (${lastUpdatedAt})";
+                        title.innerHTML = \`
+                            mobiCashier  v${appVersion}  (${lastUpdatedAt}) <span id="speedDisplay" style="margin-left: 15px; color: green;">📶 </span>
+                        \`;
+                                            
                         title.style.fontSize = '12px';
                         title.style.color = '#333';
                         title.style.fontWeight = 'normal';
@@ -508,8 +517,18 @@ class AppManager {
                             titleBar.style.background = '#f0f0f0';
                         };
                     }
+
+ window.electronSpeedUpdater = function (speedText) {
+                const speedDisplay = document.getElementById('speedDisplay');
+                if (speedDisplay) {
+                    speedDisplay.textContent = speedText;
+                }
+            };
+
+
                 `).catch(console.error);
             }, 300);
+
         });
 
         this.mainWindow.on('focus', () => {
@@ -625,7 +644,6 @@ class AppManager {
                                 },
                                 error: function(xhr, status, error) {
                                     console.log("❌ Login failed:", error);
-                                    showErrorToast('خطأ', 'فشل تسجيل الدخول');
                                     isRequestInProgress = false;
                                 }
                             });
@@ -798,6 +816,27 @@ class AppManager {
     `).catch(console.error);
     }
 
+
+    updateSpeedInTitleBar(speed) {
+        if (speed && this.mainWindow && this.mainWindow.webContents) {
+            const downloadMbps = speed.download.toFixed(2);
+            console.log(`📶 Download: ${downloadMbps} Mbps`);
+            this.mainWindow.webContents.executeJavaScript(`
+            if (window.electronSpeedUpdater) {
+        window.electronSpeedUpdater('📶 ${downloadMbps} Mbps');
+    }
+`).catch(console.error);
+
+
+
+
+        } else {
+            console.log('❌ Could not measure network speed.');
+        }
+    }
+
+
+
     run() {
 
         app.whenReady().then(async () => {
@@ -822,6 +861,28 @@ class AppManager {
                 await this.createMainWindow();
                 await this.injectUpdateOverlay();
                 autoUpdater.checkForUpdatesAndNotify().catch(console.error);
+
+                this.mainWindow.webContents.once('did-finish-load', () => {
+                    const startUpdatingSpeed = () => {
+                        checkNetworkSpeed().then(speed => this.updateSpeedInTitleBar(speed));
+                        setInterval(() => {
+                            checkNetworkSpeed().then(speed => this.updateSpeedInTitleBar(speed));
+                        }, 30000);
+                    };
+
+                    const checkIfTitleBarReady = setInterval(() => {
+                        this.mainWindow.webContents.executeJavaScript(`
+            !!document.getElementById('speedDisplay');
+        `).then((exists) => {
+                            if (exists) {
+                                clearInterval(checkIfTitleBarReady);
+                                startUpdatingSpeed();
+                            }
+                        }).catch(console.error);
+                    }, 300);
+                });
+
+
 
                 // this.checkInternetAndTime();
                 // setInterval(() => this.checkInternetAndTime(), 10 * 1000);

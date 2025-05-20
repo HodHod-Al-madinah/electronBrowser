@@ -463,8 +463,9 @@ class AppManager {
 
                         const title = document.createElement('div');
                         title.innerHTML = \`
-                            mobiCashier  v${appVersion}  (${lastUpdatedAt}) <span id="speedDisplay" style="margin-left: 15px; color: green;">📶 </span>
-                        \`;
+                                mobiCashier  v${appVersion}  (${lastUpdatedAt}) <span id="speedDisplay" style="margin-left: 15px; color: green;"></span>
+                            \`;
+
                                             
                         title.style.fontSize = '12px';
                         title.style.color = '#333';

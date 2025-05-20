@@ -1,6 +1,5 @@
 // helpers/menuHelper.js
 
-// Function to build the invoice menu with options to convert to PDF, JPG, and set scale factor
 function buildInvoiceMenu(convertToPDF, convertToJPG, promptForScaleFactor, window) {
     return [
       {

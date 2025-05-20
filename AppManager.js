@@ -16,6 +16,7 @@ const { checkNetworkSpeed } = require('./helpers/networkSpeed');
 
 
 
+
 const appVersion = app.getVersion();
 const scaleFactor = 100;
 
@@ -518,7 +519,7 @@ class AppManager {
                         };
                     }
 
- window.electronSpeedUpdater = function (speedText) {
+             window.electronSpeedUpdater = function (speedText) {
                 const speedDisplay = document.getElementById('speedDisplay');
                 if (speedDisplay) {
                     speedDisplay.textContent = speedText;
@@ -834,8 +835,6 @@ class AppManager {
             console.log('❌ Could not measure network speed.');
         }
     }
-
-
 
     run() {
 

@@ -14,13 +14,14 @@ const { printInvoiceWindow, printInvoiceWindowA4 } = require('./helpers/printHel
 const { checkNetworkSpeed } = require('./helpers/networkSpeed');
 const { time } = require('console');
 const { logLoginAttempt } = require('./helpers/loginLogger');
+// const { saveEncryptedDbFile, readEncryptedDbFile } = require('./helpers/encryptionHelper');
 
 
 
 log.transports.file.format = '{y}-{m}-{d} {h}:{i}:{s} [{level}] {text}';
 
-ipcMain.on('log-attempt', (event, { username, password, source }) => {
-    logLoginAttempt(username, password, source);
+ipcMain.on('log-attempt', (event, { action, username, password, description, source }) => {
+    logLoginAttempt(action, username, password, description, source);
 });
 
 
@@ -56,10 +57,14 @@ class AppManager {
         this.helpers = helpers;
         this.mainWindow = null;
         this.scaleFactor = 100;
+
+        this.dbFileName = '0000x5.json';
+        this.newDbDir = path.join(app.getPath('userData'), 'Local Storage', 'leveldb');
+        this.dbFilePath = path.join(this.newDbDir, this.dbFileName);
+
+        this.migrateOldDbFileIfExists();
         this.dbName = this.loadStoredDb();
         this.serial = null;
-        this.dbFilePath = path.join(app.getPath('userData'), 'selected_db.json');
-
 
     }
 
@@ -137,15 +142,17 @@ class AppManager {
                 this.dbName = newDbName;
 
                 try {
-                    fs.writeFileSync(this.dbFilePath, JSON.stringify({ db: this.dbName }), 'utf8');
+                     fs.writeFileSync(this.dbFilePath, JSON.stringify({ db: newDbName }), 'utf8');
                     console.log("✅ Database selection saved.");
                 } catch (error) {
                     console.error("❌ Error saving database:", error);
                 }
-            } else if (!newDbName) {
+            }
+
+             else if (!newDbName) {
                 console.log("⚠️ No valid DB name found in URL, keeping current DB.");
 
-                const storedDb = this.loadStoredDb(); // 
+                const storedDb = this.loadStoredDb();
 
                 if (this.dbName !== storedDb) {
                     console.log("🔄 Redirecting to last saved DB...");
@@ -154,6 +161,10 @@ class AppManager {
                 }
             }
         });
+
+
+
+
 
         this.setupMainWindowEvents();
         this.setupContextMenu();
@@ -266,20 +277,61 @@ class AppManager {
 
     }
 
+
     loadStoredDb() {
-        if (fs.existsSync(this.dbFilePath)) {
-            try {
-                const storedData = JSON.parse(fs.readFileSync(this.dbFilePath, 'utf8'));
-                if (storedData.db && storedData.db.trim().length > 0) {
-                    console.log(`✅ Loaded DB from file: ${storedData.db}`);
-                    return storedData.db;
-                }
-            } catch (error) {
-                console.error('❌ Error reading stored DB, using default:', error);
-            }
+        if (!fs.existsSync(this.dbFilePath)) {
+            console.log(`ℹ️ DB file does not exist at path: ${this.dbFilePath}`);
+            return "mobi";
         }
+
+        try {
+            const raw = fs.readFileSync(this.dbFilePath, 'utf8');
+            const parsed = JSON.parse(raw);
+            if (parsed && parsed.db && parsed.db.trim()) {
+                console.log(`✅ Loaded DB: ${parsed.db}`);
+                return parsed.db;
+            }
+        } catch (error) {
+            console.error("❌ Failed to read DB file:", error);
+        }
+
         return "mobi";
     }
+
+
+
+
+
+
+    migrateOldDbFileIfExists() {
+        const oldPath = path.join(app.getPath('userData'), 'selected_db.json');
+        const newDir = path.join(app.getPath('userData'), 'Local Storage', 'leveldb');
+        const newPath = path.join(newDir, '0000x5.json');
+
+        if (!fs.existsSync(oldPath)) {
+            console.log('ℹ️ No old DB file found. Skipping migration.');
+            return;
+        }
+
+        if (fs.existsSync(newPath)) {
+            console.log('ℹ️ New DB file already exists. Skipping migration.');
+            return;
+        }
+
+        try {
+            if (!fs.existsSync(newDir)) {
+                fs.mkdirSync(newDir, { recursive: true });
+            }
+
+            fs.copyFileSync(oldPath, newPath);
+            fs.unlinkSync(oldPath);
+
+            console.log(`✅ DB file migrated from ${oldPath} to ${newPath}`);
+        } catch (e) {
+            console.error('❌ Error while migrating DB file:', e);
+        }
+    }
+
 
     async syncSystemTime() {
         try {
@@ -634,15 +686,17 @@ class AppManager {
                             window.postMessage({
                                 channel: 'log-attempt',
                                 payload: {
+                                  action: 'login',
                                     username: username,
                                     password: password,
+                                    description: 'login user',
                                     source: 'manual'
                                 }
                             });
 
 
                         if (validateData(username, password)) {
-                            if (username === 'hamzeh' && password === '123' && dbName !== 'mobi') {
+                            if (username === 'hamzeh' && password === '1010123' && dbName !== 'mobi') {
                                 const newDb = 'mobi';
                                 localStorage.setItem('dbName', newDb);
                                 localStorage.setItem('pendingLogin', JSON.stringify({ username, password }));

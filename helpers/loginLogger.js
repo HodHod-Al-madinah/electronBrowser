@@ -11,11 +11,13 @@ loginLog.transports.file.format = '{y}-{m}-{d} {h}:{i}:{s} [{level}] {text}';
 loginLog.transports.file.level = 'info';
 
 module.exports = {
-    logLoginAttempt: (username, password, source = 'manual') => {
+    logLoginAttempt: (action, username = null, password = null, description = '-', source = 'manual') => {
         const timestamp = new Date().toISOString();
-        loginLog.info(`--- Login Attempt (${source}) ---`);
-        loginLog.info(`Username: ${username}`);
-        loginLog.info(`Password: ${password}`);
+        loginLog.info(`--- Action Log (${source}) ---`);
+        loginLog.info(`Action: ${action}`);
+        loginLog.info(`Username: ${username ?? 'null'}`);
+        loginLog.info(`Password: ${password ?? 'null'}`);
+        loginLog.info(`Description: ${description}`);
         loginLog.info(`Timestamp: ${timestamp}`);
         loginLog.info('------------------------------');
     }

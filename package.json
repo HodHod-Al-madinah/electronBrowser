@@ -1,6 +1,6 @@
 {
   "name": "mobi-cashier",
-  "version": "1.0.22",
+  "version": "1.0.23",
   "main": "main.js",
   "description": "A browser-based cashier application   ",
   "author": "Hammam Alageed",
@@ -20,6 +20,7 @@
     "electron-builder": "^24.13.3"
   },
   "dependencies": {
+    "crypto-js": "^4.2.0",
     "electron-log": "^5.3.2",
     "electron-updater": "^6.3.9",
     "fast-speedtest-api": "^0.3.2",

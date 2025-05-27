@@ -1,12 +1,12 @@
 const { contextBridge, ipcRenderer } = require('electron');
 
-// Language (global fallback, safe only in dev)
+
 window.language = 'en-US';
 
-// Secure contextBridge exposure
+
 contextBridge.exposeInMainWorld('electron', {
   ipcRenderer: {
-    // Safely send events to main process
+
     send: (channel, ...args) => {
       const validChannels = [
         'minimize-window',
@@ -23,7 +23,7 @@ contextBridge.exposeInMainWorld('electron', {
       }
     },
 
-    // Safely invoke channels expecting a response
+
     invoke: (channel, ...args) => {
       const validChannels = [
         'prompt-scale-factor',
@@ -35,7 +35,7 @@ contextBridge.exposeInMainWorld('electron', {
       }
     },
 
-    // Listen for events from main
+
     on: (channel, callback) => {
       const validChannels = [
         'update-ready',
@@ -48,13 +48,13 @@ contextBridge.exposeInMainWorld('electron', {
       }
     },
 
-    // Remove all listeners
+
     removeAllListeners: (channel) => {
       ipcRenderer.removeAllListeners(channel);
     }
   },
 
-  // Shortcuts for common events
+
   onUpdateReady: (callback) => ipcRenderer.on('update-ready', (_, version) => callback(version)),
   onDownloadProgress: (callback) => ipcRenderer.on('download-progress', (_, percent) => callback(percent)),
   installUpdate: () => ipcRenderer.send('install-update'),
@@ -64,7 +64,7 @@ contextBridge.exposeInMainWorld('electron', {
   toggleDevTools: () => ipcRenderer.send('toggle-devtools'),
 });
 
-// Optional second namespace if needed
+
 contextBridge.exposeInMainWorld('api', {
   onBiosData: (callback) => {
     ipcRenderer.on('bios-data', (event, data) => callback(data));

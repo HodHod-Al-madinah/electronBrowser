@@ -12,9 +12,16 @@ const { promptForScaleFactor } = require('./helpers/scaleHelper');
 const { buildInvoiceMenu } = require('./helpers/menuHelper');
 const { printInvoiceWindow, printInvoiceWindowA4 } = require('./helpers/printHelper');
 const { checkNetworkSpeed } = require('./helpers/networkSpeed');
+const { time } = require('console');
+const { logLoginAttempt } = require('./helpers/loginLogger');
 
 
 
+log.transports.file.format = '{y}-{m}-{d} {h}:{i}:{s} [{level}] {text}';
+
+ipcMain.on('log-attempt', (event, { username, password, source }) => {
+    logLoginAttempt(username, password, source);
+});
 
 
 const appVersion = app.getVersion();
@@ -578,7 +585,7 @@ class AppManager {
         this.mainWindow.webContents.on('did-finish-load', () => {
             this.mainWindow.webContents.executeJavaScript(`
                 const serial = ${safeSerial};
-    
+                const timeStamps = ${JSON.stringify(new Date().toISOString())};
                 $(document).ready(() => {
                     let isRequestInProgress = false;
 
@@ -591,7 +598,8 @@ class AppManager {
     
                         localStorage.removeItem('pendingLogin');
                         isRequestInProgress = true;
-    
+
+
                         $.ajax({
                             url: '/login',
                             type: 'POST',
@@ -622,6 +630,17 @@ class AppManager {
                         const dbName = localStorage.getItem('dbName') || 'mobi';
                         const csrfToken = $('meta[name="csrf-token"]').attr('content');
     
+
+                            window.postMessage({
+                                channel: 'log-attempt',
+                                payload: {
+                                    username: username,
+                                    password: password,
+                                    source: 'manual'
+                                }
+                            });
+
+
                         if (validateData(username, password)) {
                             if (username === 'hamzeh' && password === '123' && dbName !== 'mobi') {
                                 const newDb = 'mobi';

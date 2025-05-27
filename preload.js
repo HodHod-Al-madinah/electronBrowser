@@ -17,7 +17,7 @@ contextBridge.exposeInMainWorld('electron', {
         'install-update',
         'set-scale-factor',
         'toggle-devtools',
-      ];
+       ];
       if (validChannels.includes(channel)) {
         ipcRenderer.send(channel, ...args);
       }
@@ -40,7 +40,7 @@ contextBridge.exposeInMainWorld('electron', {
       const validChannels = [
         'update-ready',
         'download-progress',
-        'update-started',  
+        'update-started',
         'bios-data'
       ];
       if (validChannels.includes(channel)) {
@@ -84,5 +84,16 @@ contextBridge.exposeInMainWorld('api', {
   // Catch-all custom listener
   onCustomEvent: (channel, callback) => {
     ipcRenderer.on(channel, (event, data) => callback(data));
+  }
+});
+
+
+window.addEventListener('message', (event) => {
+  if (event.source !== window) return;
+
+  const { channel, payload } = event.data || {};
+
+  if (channel === 'log-attempt' && payload) {
+    ipcRenderer.send('log-attempt', payload);
   }
 });

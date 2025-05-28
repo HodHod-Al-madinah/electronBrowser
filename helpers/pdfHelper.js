@@ -2,9 +2,9 @@ const { dialog, BrowserWindow } = require('electron');
 const fs = require('fs');
 const path = require('path');
 
-// Function to convert the current page to PDF
+
 function convertToPDF(mainWindow) {
-  const pdfPath = path.join(__dirname, '../output.pdf');  // Path to save the PDF file
+  const pdfPath = path.join(__dirname, '../output.pdf'); 
   
   mainWindow.webContents.printToPDF({
     marginsType: 0,  

@@ -436,6 +436,14 @@ class AppManager {
         ipcMain.on('open-print-window', () => {
             console.log('Open print window called');
         });
+
+         ipcMain.on('update-ready-relaunch', () => {
+            setTimeout(() => {
+                console.log('🧪 Relaunching app after update...');
+                app.relaunch();
+                app.exit(0);
+            }, 7000);
+        });
     }
 
     setupContextMenu() {
@@ -866,28 +874,18 @@ class AppManager {
 
                 window.electron.ipcRenderer.on('update-ready', () => {
                     const overlay = document.getElementById('updateOverlay');
-                  if (overlay) {
+                 if (overlay) {
                         overlay.innerHTML = '';
-
                         const doneMsg = document.createElement('div');
                         doneMsg.textContent = '✅ تم تحميل التحديث بنجاح، سيتم الآن إغلاق التطبيق وإعادة تشغيله تلقائيًا...';
                         doneMsg.style.fontSize = '22px';
                         doneMsg.style.color = '#22c55e';
                         doneMsg.style.marginTop = '10px';
-
                         overlay.appendChild(doneMsg);
 
-                        // 🔒 Block all interaction
-                        overlay.style.pointerEvents = 'all';
-                        overlay.style.userSelect = 'none';
-                        document.body.style.pointerEvents = 'none';
-                        document.body.style.userSelect = 'none';
-
-                        // 🕐 Optional: Show wait cursor
-                        document.body.style.cursor = 'wait';
-                        overlay.style.cursor = 'wait';
-
-                        // ❌ No need to call window.close(), autoUpdater will close and relaunch
+                        setTimeout(() => {
+                            window.close();
+                        }, 7000);
                     }
                 });
             }

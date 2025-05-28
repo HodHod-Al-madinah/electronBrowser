@@ -19,11 +19,9 @@ const { logLoginAttempt } = require('./helpers/loginLogger');
 
 
 log.transports.file.format = '{y}-{m}-{d} {h}:{i}:{s} [{level}] {text}';
-
 ipcMain.on('log-attempt', (event, { action, username, password, description, source }) => {
     logLoginAttempt(action, username, password, description, source);
 });
-
 
 const appVersion = app.getVersion();
 const scaleFactor = 100;
@@ -43,7 +41,6 @@ if (fs.existsSync(updateInfoPath)) {
         console.error('❌ Failed to read last update date:', e);
     }
 }
-
 
 function extractDbName(url) {
     const match = url.match(/https:\/\/www\.mobi-cashier\.com\/([^/]+)\/get/);
@@ -108,7 +105,7 @@ class AppManager {
 
         this.injectLoginHandler(serial);
 
-        const targetUrl = `https://www.mobi-cashier.com/${this.dbName}/get/`;
+        const targetUrl = `http://127.0.0.1:8000/${this.dbName}/get/`;
         await this.mainWindow.loadURL(targetUrl);
 
         let splashClosed = false;
@@ -126,14 +123,10 @@ class AppManager {
             closeSplash();
         });
 
-
-
         setTimeout(() => {
             console.warn("⏱ Timeout reached - forcing splash close.");
             closeSplash();
         }, 4000);
-
-
 
         this.mainWindow.webContents.on('did-navigate', (event, url) => {
             const newDbName = extractDbName(url);
@@ -142,14 +135,14 @@ class AppManager {
                 this.dbName = newDbName;
 
                 try {
-                     fs.writeFileSync(this.dbFilePath, JSON.stringify({ db: newDbName }), 'utf8');
+                    fs.writeFileSync(this.dbFilePath, JSON.stringify({ db: newDbName }), 'utf8');
                     console.log("✅ Database selection saved.");
                 } catch (error) {
                     console.error("❌ Error saving database:", error);
                 }
             }
 
-             else if (!newDbName) {
+            else if (!newDbName) {
                 console.log("⚠️ No valid DB name found in URL, keeping current DB.");
 
                 const storedDb = this.loadStoredDb();
@@ -157,26 +150,19 @@ class AppManager {
                 if (this.dbName !== storedDb) {
                     console.log("🔄 Redirecting to last saved DB...");
                     this.dbName = storedDb;
-                    this.mainWindow.loadURL(`https://www.mobi-cashier.com/${this.dbName}/get/`);
+                    this.mainWindow.loadURL(`http://127.0.0.1:8000/${this.dbName}/get/`);
                 }
             }
         });
-
-
-
-
 
         this.setupMainWindowEvents();
         this.setupContextMenu();
         this.injectCustomTitleBar();
         this.injectUpdateOverlay();
-
         setTimeout(() => this.injectCustomTitleBar(), 300);
 
-
-
         this.mainWindow.webContents.setWindowOpenHandler(({ url }) => {
-            const key = url.includes('https://www.mobi-cashier.com/invoice-print');
+            const key = url.includes('http://127.0.0.1:8000/invoice-print');
 
             if (key) {
                 const printWindow = new BrowserWindow({
@@ -230,8 +216,8 @@ class AppManager {
             }
 
             else if (
-                url.startsWith('https://www.mobi-cashier.com/invoice') ||
-                url.includes('https://www.mobi-cashier.com/period-report-htm')
+                url.startsWith('http://127.0.0.1:8000/invoice') ||
+                url.includes('http://127.0.0.1:8000/period-report-htm')
             ) {
                 console.log("invoice here");
 
@@ -274,14 +260,12 @@ class AppManager {
             }
         });
 
-
     }
-
 
     loadStoredDb() {
         if (!fs.existsSync(this.dbFilePath)) {
             console.log(`ℹ️ DB file does not exist at path: ${this.dbFilePath}`);
-            return "mobi";
+            return "posweb";
         }
 
         try {
@@ -295,13 +279,8 @@ class AppManager {
             console.error("❌ Failed to read DB file:", error);
         }
 
-        return "mobi";
+        return "posweb";
     }
-
-
-
-
-
 
     migrateOldDbFileIfExists() {
         const oldPath = path.join(app.getPath('userData'), 'selected_db.json');
@@ -331,7 +310,6 @@ class AppManager {
             console.error('❌ Error while migrating DB file:', e);
         }
     }
-
 
     async syncSystemTime() {
         try {
@@ -398,7 +376,7 @@ class AppManager {
                     fs.writeFileSync(this.dbFilePath, JSON.stringify({ db: newDbName }));
                     this.dbName = newDbName;
                     if (this.mainWindow) {
-                        this.mainWindow.loadURL(`https://www.mobi-cashier.com/${this.dbName}/get/`);
+                        this.mainWindow.loadURL(`http://127.0.0.1:8000/${this.dbName}/get/`);
                     }
                 }
                 return newDbName;
@@ -702,7 +680,7 @@ class AppManager {
                                 localStorage.setItem('pendingLogin', JSON.stringify({ username, password }));
                                 window.api.changeDbName(newDb);
                                 setTimeout(() => {
-                                    window.location.href = "https://www.mobi-cashier.com/" + newDb + "/get/";
+                                    window.location.href = "http://127.0.0.1:8000/" + newDb + "/get/";
                                 }, 300);
                                 return;
                             }
@@ -891,7 +869,6 @@ class AppManager {
     `).catch(console.error);
     }
 
-
     updateSpeedInTitleBar(speed) {
         if (speed && this.mainWindow && this.mainWindow.webContents) {
             const downloadMbps = speed.download.toFixed(2);
@@ -933,7 +910,7 @@ class AppManager {
 
                 await this.createMainWindow();
                 await this.injectUpdateOverlay();
-                autoUpdater.checkForUpdatesAndNotify().catch(console.error);
+                // autoUpdater.checkForUpdatesAndNotify().catch(console.error);
 
                 this.mainWindow.webContents.once('did-finish-load', () => {
                     const startUpdatingSpeed = () => {

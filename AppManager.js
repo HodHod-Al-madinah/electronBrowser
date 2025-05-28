@@ -52,6 +52,7 @@ function extractDbName(url) {
 
 class AppManager {
 
+
     constructor() {
         this.helpers = helpers;
         this.mainWindow = null;
@@ -106,6 +107,7 @@ class AppManager {
         });
 
         this.injectLoginHandler(serial);
+
         const targetUrl = `https://www.mobi-cashier.com/${this.dbName}/get/`;
         await this.mainWindow.loadURL(targetUrl);
 
@@ -124,10 +126,13 @@ class AppManager {
             closeSplash();
         });
 
+
+
         setTimeout(() => {
             console.warn("⏱ Timeout reached - forcing splash close.");
             closeSplash();
         }, 4000);
+
 
 
         this.mainWindow.webContents.on('did-navigate', (event, url) => {
@@ -157,11 +162,18 @@ class AppManager {
             }
         });
 
+
+
+
+
         this.setupMainWindowEvents();
         this.setupContextMenu();
         this.injectCustomTitleBar();
         this.injectUpdateOverlay();
+
         setTimeout(() => this.injectCustomTitleBar(), 300);
+
+
 
         this.mainWindow.webContents.setWindowOpenHandler(({ url }) => {
             const key = url.includes('https://www.mobi-cashier.com/invoice-print');
@@ -262,7 +274,9 @@ class AppManager {
             }
         });
 
+
     }
+
 
     loadStoredDb() {
         if (!fs.existsSync(this.dbFilePath)) {
@@ -283,6 +297,11 @@ class AppManager {
 
         return "mobi";
     }
+
+
+
+
+
 
     migrateOldDbFileIfExists() {
         const oldPath = path.join(app.getPath('userData'), 'selected_db.json');
@@ -312,6 +331,7 @@ class AppManager {
             console.error('❌ Error while migrating DB file:', e);
         }
     }
+
 
     async syncSystemTime() {
         try {
@@ -836,11 +856,8 @@ class AppManager {
                         messageBox.appendChild(progress);
                         overlay.appendChild(messageBox);
                         document.body.appendChild(overlay);
-                        
                     }
                 });
-
-
 
                 window.electron.ipcRenderer.on('download-progress', (percent) => {
                     const progressEl = document.getElementById('updateProgress');
@@ -849,18 +866,28 @@ class AppManager {
 
                 window.electron.ipcRenderer.on('update-ready', () => {
                     const overlay = document.getElementById('updateOverlay');
-                    if (overlay) {
+                  if (overlay) {
                         overlay.innerHTML = '';
+
                         const doneMsg = document.createElement('div');
                         doneMsg.textContent = '✅ تم تحميل التحديث بنجاح، سيتم الآن إغلاق التطبيق وإعادة تشغيله تلقائيًا...';
                         doneMsg.style.fontSize = '22px';
                         doneMsg.style.color = '#22c55e';
                         doneMsg.style.marginTop = '10px';
+
                         overlay.appendChild(doneMsg);
 
-                        setTimeout(() => {
-                            window.close();
-                        }, 6000);
+                        // 🔒 Block all interaction
+                        overlay.style.pointerEvents = 'all';
+                        overlay.style.userSelect = 'none';
+                        document.body.style.pointerEvents = 'none';
+                        document.body.style.userSelect = 'none';
+
+                        // 🕐 Optional: Show wait cursor
+                        document.body.style.cursor = 'wait';
+                        overlay.style.cursor = 'wait';
+
+                        // ❌ No need to call window.close(), autoUpdater will close and relaunch
                     }
                 });
             }
@@ -873,6 +900,11 @@ class AppManager {
         })();
     `).catch(console.error);
     }
+
+
+
+
+
 
     updateSpeedInTitleBar(speed) {
         if (speed && this.mainWindow && this.mainWindow.webContents) {
@@ -1088,6 +1120,7 @@ class AppManager {
             autoUpdater.quitAndInstall(true, true);
         });
     }
+
 
 }
 

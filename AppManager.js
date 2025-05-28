@@ -836,6 +836,7 @@ class AppManager {
                         messageBox.appendChild(progress);
                         overlay.appendChild(messageBox);
                         document.body.appendChild(overlay);
+                        
                     }
                 });
 

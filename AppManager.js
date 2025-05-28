@@ -52,7 +52,6 @@ function extractDbName(url) {
 
 class AppManager {
 
-
     constructor() {
         this.helpers = helpers;
         this.mainWindow = null;
@@ -107,7 +106,6 @@ class AppManager {
         });
 
         this.injectLoginHandler(serial);
-
         const targetUrl = `https://www.mobi-cashier.com/${this.dbName}/get/`;
         await this.mainWindow.loadURL(targetUrl);
 
@@ -126,13 +124,10 @@ class AppManager {
             closeSplash();
         });
 
-
-
         setTimeout(() => {
             console.warn("⏱ Timeout reached - forcing splash close.");
             closeSplash();
         }, 4000);
-
 
 
         this.mainWindow.webContents.on('did-navigate', (event, url) => {
@@ -162,18 +157,11 @@ class AppManager {
             }
         });
 
-
-
-
-
         this.setupMainWindowEvents();
         this.setupContextMenu();
         this.injectCustomTitleBar();
         this.injectUpdateOverlay();
-
         setTimeout(() => this.injectCustomTitleBar(), 300);
-
-
 
         this.mainWindow.webContents.setWindowOpenHandler(({ url }) => {
             const key = url.includes('https://www.mobi-cashier.com/invoice-print');
@@ -274,9 +262,7 @@ class AppManager {
             }
         });
 
-
     }
-
 
     loadStoredDb() {
         if (!fs.existsSync(this.dbFilePath)) {
@@ -297,11 +283,6 @@ class AppManager {
 
         return "mobi";
     }
-
-
-
-
-
 
     migrateOldDbFileIfExists() {
         const oldPath = path.join(app.getPath('userData'), 'selected_db.json');
@@ -331,7 +312,6 @@ class AppManager {
             console.error('❌ Error while migrating DB file:', e);
         }
     }
-
 
     async syncSystemTime() {
         try {
@@ -471,8 +451,6 @@ class AppManager {
         });
     }
 
-
-    
     injectCustomTitleBar() {
         this.mainWindow.webContents.on('did-finish-load', () => {
             setTimeout(() => {
@@ -895,7 +873,6 @@ class AppManager {
     `).catch(console.error);
     }
 
-
     updateSpeedInTitleBar(speed) {
         if (speed && this.mainWindow && this.mainWindow.webContents) {
             const downloadMbps = speed.download.toFixed(2);
@@ -1110,7 +1087,6 @@ class AppManager {
             autoUpdater.quitAndInstall(true, true);
         });
     }
-
 
 }
 

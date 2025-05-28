@@ -2,7 +2,7 @@ const crypto = require('crypto');
 const fs = require('fs');
 
 const algorithm = 'aes-256-cbc';
-const key = crypto.createHash('sha256').update('mobi_secret_key').digest(); // 32-byte key
+const key = crypto.createHash('sha256').update('mobi_secret_key').digest();  
 const iv = Buffer.alloc(16, 0);
 
 

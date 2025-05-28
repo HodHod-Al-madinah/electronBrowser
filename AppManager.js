@@ -142,14 +142,14 @@ class AppManager {
                 this.dbName = newDbName;
 
                 try {
-                     fs.writeFileSync(this.dbFilePath, JSON.stringify({ db: newDbName }), 'utf8');
+                    fs.writeFileSync(this.dbFilePath, JSON.stringify({ db: newDbName }), 'utf8');
                     console.log("✅ Database selection saved.");
                 } catch (error) {
                     console.error("❌ Error saving database:", error);
                 }
             }
 
-             else if (!newDbName) {
+            else if (!newDbName) {
                 console.log("⚠️ No valid DB name found in URL, keeping current DB.");
 
                 const storedDb = this.loadStoredDb();
@@ -471,6 +471,8 @@ class AppManager {
         });
     }
 
+
+    
     injectCustomTitleBar() {
         this.mainWindow.webContents.on('did-finish-load', () => {
             setTimeout(() => {
@@ -859,6 +861,8 @@ class AppManager {
                     }
                 });
 
+
+
                 window.electron.ipcRenderer.on('download-progress', (percent) => {
                     const progressEl = document.getElementById('updateProgress');
                     if (progressEl) progressEl.textContent = percent + '%';
@@ -869,7 +873,7 @@ class AppManager {
                     if (overlay) {
                         overlay.innerHTML = '';
                         const doneMsg = document.createElement('div');
-                        doneMsg.textContent = '✅ جاري تحميل التحديث، سيتم إغلاق التطبيق...';
+                        doneMsg.textContent = '✅ تم تحميل التحديث بنجاح، سيتم الآن إغلاق التطبيق وإعادة تشغيله تلقائيًا...';
                         doneMsg.style.fontSize = '22px';
                         doneMsg.style.color = '#22c55e';
                         doneMsg.style.marginTop = '10px';
@@ -877,7 +881,7 @@ class AppManager {
 
                         setTimeout(() => {
                             window.close();
-                        }, 2000);
+                        }, 6000);
                     }
                 });
             }
@@ -957,6 +961,8 @@ class AppManager {
 
 
 
+
+
                 // this.checkInternetAndTime();
                 // setInterval(() => this.checkInternetAndTime(), 10 * 1000);
 
@@ -991,6 +997,9 @@ class AppManager {
                     const updateInfoPath = path.join(app.getPath('userData'), 'last_update.json');
                     const now = new Date().toISOString();
 
+
+
+
                     try {
                         fs.writeFileSync(updateInfoPath, JSON.stringify({
                             version: info.version,
@@ -1000,7 +1009,10 @@ class AppManager {
                     } catch (err) {
                         console.error("❌ Failed to save last update info:", err);
                     }
+
+                    autoUpdater.quitAndInstall(true, true);
                 });
+
 
                 autoUpdater.on('error', (error) => {
                     console.error('❌ AutoUpdater error:', error);

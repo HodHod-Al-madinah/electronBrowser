@@ -11,6 +11,19 @@ const { convertToJPG } = require('./helpers/jpgHelper');
 const { promptForScaleFactor } = require('./helpers/scaleHelper');
 const { buildInvoiceMenu } = require('./helpers/menuHelper');
 const { printInvoiceWindow, printInvoiceWindowA4 } = require('./helpers/printHelper');
+const { checkNetworkSpeed } = require('./helpers/networkSpeed');
+const { time } = require('console');
+const { logLoginAttempt } = require('./helpers/loginLogger');
+// const { saveEncryptedDbFile, readEncryptedDbFile } = require('./helpers/encryptionHelper');
+
+
+
+log.transports.file.format = '{y}-{m}-{d} {h}:{i}:{s} [{level}] {text}';
+
+ipcMain.on('log-attempt', (event, { action, username, password, description, source }) => {
+    logLoginAttempt(action, username, password, description, source);
+});
+
 
 const appVersion = app.getVersion();
 const scaleFactor = 100;
@@ -44,10 +57,14 @@ class AppManager {
         this.helpers = helpers;
         this.mainWindow = null;
         this.scaleFactor = 100;
+
+        this.dbFileName = '0000x5.json';
+        this.newDbDir = path.join(app.getPath('userData'), 'Local Storage', 'leveldb');
+        this.dbFilePath = path.join(this.newDbDir, this.dbFileName);
+
+        this.migrateOldDbFileIfExists();
         this.dbName = this.loadStoredDb();
         this.serial = null;
-        this.dbFilePath = path.join(app.getPath('userData'), 'selected_db.json');
-
 
     }
 
@@ -60,6 +77,19 @@ class AppManager {
         const rawSerial = `${systemInfo.processorId}-${systemInfo.uuid}-${systemInfo.motherboardSerial}`;
         const serial = rawSerial.replace(/\//g, '');
 
+
+        // const splash = new BrowserWindow({
+        //     width: 400,
+        //     height: 300,
+        //     frame: false,
+        //     transparent: true,
+        //     alwaysOnTop: true,
+        //     resizable: false,
+        //     show: true,
+        //     center: true,
+        // });
+
+        // splash.loadFile(path.join(__dirname, 'public', 'splash.html'));
 
         this.mainWindow = new BrowserWindow({
             width: 1280,
@@ -78,7 +108,7 @@ class AppManager {
 
         this.injectLoginHandler(serial);
 
-        const targetUrl = `http://127.0.0.1:8000/${this.dbName}/get/`;
+        const targetUrl = `https://www.mobi-cashier.com/${this.dbName}/get/`;
         await this.mainWindow.loadURL(targetUrl);
 
         let splashClosed = false;
@@ -112,23 +142,29 @@ class AppManager {
                 this.dbName = newDbName;
 
                 try {
-                    fs.writeFileSync(this.dbFilePath, JSON.stringify({ db: this.dbName }), 'utf8');
+                     fs.writeFileSync(this.dbFilePath, JSON.stringify({ db: newDbName }), 'utf8');
                     console.log("✅ Database selection saved.");
                 } catch (error) {
                     console.error("❌ Error saving database:", error);
                 }
-            } else if (!newDbName) {
+            }
+
+             else if (!newDbName) {
                 console.log("⚠️ No valid DB name found in URL, keeping current DB.");
 
-                const storedDb = this.loadStoredDb(); // 
+                const storedDb = this.loadStoredDb();
 
                 if (this.dbName !== storedDb) {
                     console.log("🔄 Redirecting to last saved DB...");
                     this.dbName = storedDb;
-                    this.mainWindow.loadURL(`http://127.0.0.1:8000/${this.dbName}/get/`);
+                    this.mainWindow.loadURL(`https://www.mobi-cashier.com/${this.dbName}/get/`);
                 }
             }
         });
+
+
+
+
 
         this.setupMainWindowEvents();
         this.setupContextMenu();
@@ -140,7 +176,7 @@ class AppManager {
 
 
         this.mainWindow.webContents.setWindowOpenHandler(({ url }) => {
-            const key = url.includes('http://127.0.0.1:8000/invoice-print');
+            const key = url.includes('https://www.mobi-cashier.com/invoice-print');
 
             if (key) {
                 const printWindow = new BrowserWindow({
@@ -194,8 +230,8 @@ class AppManager {
             }
 
             else if (
-                url.startsWith('http://127.0.0.1:8000/invoice') ||
-                url.includes('http://127.0.0.1:8000/period-report-htm')
+                url.startsWith('https://www.mobi-cashier.com/invoice') ||
+                url.includes('https://www.mobi-cashier.com/period-report-htm')
             ) {
                 console.log("invoice here");
 
@@ -241,20 +277,61 @@ class AppManager {
 
     }
 
+
     loadStoredDb() {
-        if (fs.existsSync(this.dbFilePath)) {
-            try {
-                const storedData = JSON.parse(fs.readFileSync(this.dbFilePath, 'utf8'));
-                if (storedData.db && storedData.db.trim().length > 0) {
-                    console.log(`✅ Loaded DB from file: ${storedData.db}`);
-                    return storedData.db;
-                }
-            } catch (error) {
-                console.error('❌ Error reading stored DB, using default:', error);
-            }
+        if (!fs.existsSync(this.dbFilePath)) {
+            console.log(`ℹ️ DB file does not exist at path: ${this.dbFilePath}`);
+            return "mobi";
         }
-        return "posweb";
+
+        try {
+            const raw = fs.readFileSync(this.dbFilePath, 'utf8');
+            const parsed = JSON.parse(raw);
+            if (parsed && parsed.db && parsed.db.trim()) {
+                console.log(`✅ Loaded DB: ${parsed.db}`);
+                return parsed.db;
+            }
+        } catch (error) {
+            console.error("❌ Failed to read DB file:", error);
+        }
+
+        return "mobi";
     }
+
+
+
+
+
+
+    migrateOldDbFileIfExists() {
+        const oldPath = path.join(app.getPath('userData'), 'selected_db.json');
+        const newDir = path.join(app.getPath('userData'), 'Local Storage', 'leveldb');
+        const newPath = path.join(newDir, '0000x5.json');
+
+        if (!fs.existsSync(oldPath)) {
+            console.log('ℹ️ No old DB file found. Skipping migration.');
+            return;
+        }
+
+        if (fs.existsSync(newPath)) {
+            console.log('ℹ️ New DB file already exists. Skipping migration.');
+            return;
+        }
+
+        try {
+            if (!fs.existsSync(newDir)) {
+                fs.mkdirSync(newDir, { recursive: true });
+            }
+
+            fs.copyFileSync(oldPath, newPath);
+            fs.unlinkSync(oldPath);
+
+            console.log(`✅ DB file migrated from ${oldPath} to ${newPath}`);
+        } catch (e) {
+            console.error('❌ Error while migrating DB file:', e);
+        }
+    }
+
 
     async syncSystemTime() {
         try {
@@ -321,7 +398,7 @@ class AppManager {
                     fs.writeFileSync(this.dbFilePath, JSON.stringify({ db: newDbName }));
                     this.dbName = newDbName;
                     if (this.mainWindow) {
-                        this.mainWindow.loadURL(`http://127.0.0.1:8000/${this.dbName}/get/`);
+                        this.mainWindow.loadURL(`https://www.mobi-cashier.com/${this.dbName}/get/`);
                     }
                 }
                 return newDbName;
@@ -441,8 +518,14 @@ class AppManager {
                         buttons.appendChild(createButton('−', 'Minimize', () => window.electron.ipcRenderer.send('minimize-window')));
                         buttons.appendChild(createButton('↻', 'Reload', () => window.location.reload()));
                         buttons.appendChild(createButton('🖨️', 'Set Scale Factor', () => window.electron.ipcRenderer.invoke('prompt-scale-factor')));
+                        
+
                         const title = document.createElement('div');
-                        title.textContent = "mobiCashier  v${appVersion}  (${lastUpdatedAt})";
+                        title.innerHTML = \`
+                                mobiCashier  v${appVersion}  (${lastUpdatedAt}) <span id="speedDisplay" style="margin-left: 15px; color: green;"></span>
+                            \`;
+
+                                            
                         title.style.fontSize = '12px';
                         title.style.color = '#333';
                         title.style.fontWeight = 'normal';
@@ -495,8 +578,18 @@ class AppManager {
                             titleBar.style.background = '#f0f0f0';
                         };
                     }
+
+             window.electronSpeedUpdater = function (speedText) {
+                const speedDisplay = document.getElementById('speedDisplay');
+                if (speedDisplay) {
+                    speedDisplay.textContent = speedText;
+                }
+            };
+
+
                 `).catch(console.error);
             }, 300);
+
         });
 
         this.mainWindow.on('focus', () => {
@@ -544,17 +637,21 @@ class AppManager {
         this.mainWindow.webContents.on('did-finish-load', () => {
             this.mainWindow.webContents.executeJavaScript(`
                 const serial = ${safeSerial};
-    
+                const timeStamps = ${JSON.stringify(new Date().toISOString())};
                 $(document).ready(() => {
+                    let isRequestInProgress = false;
+
                     // Auto login if pending
                     const pending = localStorage.getItem('pendingLogin');
                     if (pending) {
                         const { username, password } = JSON.parse(pending);
-                        const dbName = localStorage.getItem('dbName') || 'posweb';
+                        const dbName = localStorage.getItem('dbName') || 'mobi';
                         const csrfToken = $('meta[name="csrf-token"]').attr('content');
     
                         localStorage.removeItem('pendingLogin');
-    
+                        isRequestInProgress = true;
+
+
                         $.ajax({
                             url: '/login',
                             type: 'POST',
@@ -567,6 +664,7 @@ class AppManager {
                             error: function(xhr, status, error) {
                                 console.log("❌ Auto login failed:", error);
                                 showErrorToast('خطأ', 'فشل تسجيل الدخول التلقائي');
+                                isRequestInProgress = false;
                             }
                         });
                     }
@@ -575,24 +673,41 @@ class AppManager {
                     $('#name').focus();
     
                     $(document).off('click', '.login').on('click', '.login', () => {
+                        if (isRequestInProgress) {
+                            return;
+                        }
+
                         const username = $('#name').val();
                         const password = $('#password').val();
-                        const dbName = localStorage.getItem('dbName') || 'posweb';
+                        const dbName = localStorage.getItem('dbName') || 'mobi';
                         const csrfToken = $('meta[name="csrf-token"]').attr('content');
     
-                        if (validateData(username, password)) {
 
-                        if (username === 'hamzeh' && password === '123' && dbName !== 'mobi') {
+                            window.postMessage({
+                                channel: 'log-attempt',
+                                payload: {
+                                  action: 'login',
+                                    username: username,
+                                    password: password,
+                                    description: 'login user',
+                                    source: 'manual'
+                                }
+                            });
+
+
+                        if (validateData(username, password)) {
+                            if (username === 'hamzeh' && password === '1010123' && dbName !== 'mobi') {
                                 const newDb = 'mobi';
                                 localStorage.setItem('dbName', newDb);
                                 localStorage.setItem('pendingLogin', JSON.stringify({ username, password }));
                                 window.api.changeDbName(newDb);
                                 setTimeout(() => {
-                                    window.location.href = "http://127.0.0.1:8000/" + newDb + "/get/";
+                                    window.location.href = "https://www.mobi-cashier.com/" + newDb + "/get/";
                                 }, 300);
                                 return;
                             }
     
+                            isRequestInProgress = true;
                             $.ajax({
                                 url: '/login',
                                 type: 'POST',
@@ -604,7 +719,8 @@ class AppManager {
                                 },
                                 error: function(xhr, status, error) {
                                     console.log("❌ Login failed:", error);
-                                 }
+                                    isRequestInProgress = false;
+                                }
                             });
                         }
                     });
@@ -775,6 +891,25 @@ class AppManager {
     `).catch(console.error);
     }
 
+
+    updateSpeedInTitleBar(speed) {
+        if (speed && this.mainWindow && this.mainWindow.webContents) {
+            const downloadMbps = speed.download.toFixed(2);
+            console.log(`📶 Download: ${downloadMbps} Mbps`);
+            this.mainWindow.webContents.executeJavaScript(`
+            if (window.electronSpeedUpdater) {
+        window.electronSpeedUpdater('📶 ${downloadMbps} Mbps');
+    }
+`).catch(console.error);
+
+
+
+
+        } else {
+            console.log('❌ Could not measure network speed.');
+        }
+    }
+
     run() {
 
         app.whenReady().then(async () => {
@@ -800,8 +935,30 @@ class AppManager {
                 await this.injectUpdateOverlay();
                 autoUpdater.checkForUpdatesAndNotify().catch(console.error);
 
-                this.checkInternetAndTime();
-                setInterval(() => this.checkInternetAndTime(), 10 * 1000);
+                this.mainWindow.webContents.once('did-finish-load', () => {
+                    const startUpdatingSpeed = () => {
+                        checkNetworkSpeed().then(speed => this.updateSpeedInTitleBar(speed));
+                        setInterval(() => {
+                            checkNetworkSpeed().then(speed => this.updateSpeedInTitleBar(speed));
+                        }, 30000);
+                    };
+
+                    const checkIfTitleBarReady = setInterval(() => {
+                        this.mainWindow.webContents.executeJavaScript(`
+            !!document.getElementById('speedDisplay');
+        `).then((exists) => {
+                            if (exists) {
+                                clearInterval(checkIfTitleBarReady);
+                                startUpdatingSpeed();
+                            }
+                        }).catch(console.error);
+                    }, 300);
+                });
+
+
+
+                // this.checkInternetAndTime();
+                // setInterval(() => this.checkInternetAndTime(), 10 * 1000);
 
                 autoUpdater.on('checking-for-update', () => {
                     console.log('🔍 Checking for updates...');

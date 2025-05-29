@@ -77,19 +77,6 @@ class AppManager {
         const serial = rawSerial.replace(/\//g, '');
 
 
-        // const splash = new BrowserWindow({
-        //     width: 400,
-        //     height: 300,
-        //     frame: false,
-        //     transparent: true,
-        //     alwaysOnTop: true,
-        //     resizable: false,
-        //     show: true,
-        //     center: true,
-        // });
-
-        // splash.loadFile(path.join(__dirname, 'public', 'splash.html'));
-
         this.mainWindow = new BrowserWindow({
             width: 1280,
             height: 800,
@@ -126,12 +113,10 @@ class AppManager {
         });
 
 
-
         setTimeout(() => {
             console.warn("⏱ Timeout reached - forcing splash close.");
             closeSplash();
         }, 4000);
-
 
 
         this.mainWindow.webContents.on('did-navigate', (event, url) => {
@@ -162,16 +147,12 @@ class AppManager {
         });
 
 
-
-
-
         this.setupMainWindowEvents();
         this.setupContextMenu();
         this.injectCustomTitleBar();
         this.injectUpdateOverlay();
 
         setTimeout(() => this.injectCustomTitleBar(), 300);
-
 
 
         this.mainWindow.webContents.setWindowOpenHandler(({ url }) => {
@@ -877,7 +858,7 @@ class AppManager {
 
                         setTimeout(() => {
                             window.close();
-                        }, 7000);
+                        }, 2000);
                     }
                 });
             }
@@ -933,6 +914,7 @@ class AppManager {
                 await this.createMainWindow();
                 await this.injectUpdateOverlay();
                 autoUpdater.checkForUpdatesAndNotify().catch(console.error);
+
 
                 this.mainWindow.webContents.once('did-finish-load', () => {
                     const startUpdatingSpeed = () => {

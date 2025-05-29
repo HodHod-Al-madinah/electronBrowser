@@ -52,7 +52,6 @@ function extractDbName(url) {
 
 class AppManager {
 
-
     constructor() {
         this.helpers = helpers;
         this.mainWindow = null;
@@ -277,7 +276,6 @@ class AppManager {
 
     }
 
-
     loadStoredDb() {
         if (!fs.existsSync(this.dbFilePath)) {
             console.log(`ℹ️ DB file does not exist at path: ${this.dbFilePath}`);
@@ -297,11 +295,6 @@ class AppManager {
 
         return "mobi";
     }
-
-
-
-
-
 
     migrateOldDbFileIfExists() {
         const oldPath = path.join(app.getPath('userData'), 'selected_db.json');
@@ -331,7 +324,6 @@ class AppManager {
             console.error('❌ Error while migrating DB file:', e);
         }
     }
-
 
     async syncSystemTime() {
         try {
@@ -898,11 +890,6 @@ class AppManager {
         })();
     `).catch(console.error);
     }
-
-
-
-
-
 
     updateSpeedInTitleBar(speed) {
         if (speed && this.mainWindow && this.mainWindow.webContents) {

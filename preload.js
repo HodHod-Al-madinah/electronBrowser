@@ -17,7 +17,7 @@ contextBridge.exposeInMainWorld('electron', {
         'install-update',
         'set-scale-factor',
         'toggle-devtools',
-       ];
+      ];
       if (validChannels.includes(channel)) {
         ipcRenderer.send(channel, ...args);
       }
@@ -54,7 +54,7 @@ contextBridge.exposeInMainWorld('electron', {
     }
   },
 
-
+  setDefaultPrinter: () => ipcRenderer.invoke('set-default-printer'),
   onUpdateReady: (callback) => ipcRenderer.on('update-ready', (_, version) => callback(version)),
   onDownloadProgress: (callback) => ipcRenderer.on('download-progress', (_, percent) => callback(percent)),
   installUpdate: () => ipcRenderer.send('install-update'),

@@ -15,6 +15,9 @@ const { checkNetworkSpeed } = require('./helpers/networkSpeed');
 const { time } = require('console');
 const { logLoginAttempt } = require('./helpers/loginLogger');
 // const { saveEncryptedDbFile, readEncryptedDbFile } = require('./helpers/encryptionHelper');
+const { showAndSetDefaultPrinter } = require('./helpers/printerHelper');
+
+
 
 
 
@@ -363,7 +366,9 @@ class AppManager {
         });
 
 
-
+        ipcMain.handle('set-default-printer', async () => {
+            return await showAndSetDefaultPrinter(this.mainWindow);
+        });
 
         ipcMain.handle('change-db-name', async (event, newDbName) => {
             try {
@@ -410,7 +415,7 @@ class AppManager {
             console.log('Open print window called');
         });
 
-         ipcMain.on('update-ready-relaunch', () => {
+        ipcMain.on('update-ready-relaunch', () => {
             setTimeout(() => {
                 console.log('🧪 Relaunching app after update...');
                 app.relaunch();
@@ -498,8 +503,8 @@ class AppManager {
                         buttons.appendChild(createButton('□', 'Maximize', () => window.electron.ipcRenderer.send('maximize-window')));
                         buttons.appendChild(createButton('−', 'Minimize', () => window.electron.ipcRenderer.send('minimize-window')));
                         buttons.appendChild(createButton('↻', 'Reload', () => window.location.reload()));
-                        buttons.appendChild(createButton('🖨️', 'Set Scale Factor', () => window.electron.ipcRenderer.invoke('prompt-scale-factor')));
-                        
+                        buttons.appendChild(createButton('📐', 'Set Scale Factor', () => window.electron.ipcRenderer.invoke('prompt-scale-factor')));
+                        buttons.appendChild(createButton('🖨️', 'Set Default Printer', () => window.electron.setDefaultPrinter()));
 
                         const title = document.createElement('div');
                         title.innerHTML = \`

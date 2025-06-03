@@ -14,11 +14,8 @@ const { printInvoiceWindow, printInvoiceWindowA4 } = require('./helpers/printHel
 const { checkNetworkSpeed } = require('./helpers/networkSpeed');
 const { time } = require('console');
 const { logLoginAttempt } = require('./helpers/loginLogger');
-// const { saveEncryptedDbFile, readEncryptedDbFile } = require('./helpers/encryptionHelper');
 const { showAndSetDefaultPrinter } = require('./helpers/printerHelper');
-
-
-
+const { session } = require('electron');
 
 
 log.transports.file.format = '{y}-{m}-{d} {h}:{i}:{s} [{level}] {text}';
@@ -624,6 +621,19 @@ class AppManager {
             this.mainWindow.webContents.executeJavaScript(`
                 const serial = ${safeSerial};
                 const timeStamps = ${JSON.stringify(new Date().toISOString())};
+              
+
+                const dbFromFile = '${this.dbName}';
+                    let storedDb = localStorage.getItem('dbName');
+
+                    if (!storedDb) {
+
+                    localStorage.setItem('dbName', dbFromFile);
+                        storedDb = dbFromFile;
+                    } else {
+                        console.log("✅ dbName found in localStorage:", storedDb);
+                    }
+              
                 $(document).ready(() => {
                     let isRequestInProgress = false;
 
@@ -899,6 +909,7 @@ class AppManager {
 
         app.whenReady().then(async () => {
 
+            await clearElectronCache();
 
             this.splash = new BrowserWindow({
                 width: 400,
@@ -913,13 +924,11 @@ class AppManager {
             this.splash.loadFile(path.join(__dirname, 'public', 'splash.html'));
 
 
-
             setTimeout(async () => {
 
                 await this.createMainWindow();
                 await this.injectUpdateOverlay();
                 autoUpdater.checkForUpdatesAndNotify().catch(console.error);
-
 
                 this.mainWindow.webContents.once('did-finish-load', () => {
                     const startUpdatingSpeed = () => {
@@ -940,9 +949,6 @@ class AppManager {
                         }).catch(console.error);
                     }, 300);
                 });
-
-
-
 
 
                 // this.checkInternetAndTime();
@@ -980,8 +986,6 @@ class AppManager {
                     const now = new Date().toISOString();
 
 
-
-
                     try {
                         fs.writeFileSync(updateInfoPath, JSON.stringify({
                             version: info.version,
@@ -1002,75 +1006,17 @@ class AppManager {
 
             }, 200);
 
+            async function clearElectronCache() {
+                try {
+                    await session.defaultSession.clearCache();
+                    await session.defaultSession.clearStorageData();
+                    console.log('✅ تم مسح الكاش وبيانات التخزين المؤقت.');
+                } catch (err) {
+                    console.error('❌ فشل في مسح الكاش:', err.message);
+                }
+            }
+
         });
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
         app.on('window-all-closed', () => {
             if (process.platform !== 'darwin') app.quit();
@@ -1092,7 +1038,6 @@ class AppManager {
             autoUpdater.quitAndInstall(true, true);
         });
     }
-
 
 }
 

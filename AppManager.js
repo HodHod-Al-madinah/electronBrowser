@@ -16,9 +16,9 @@ const { time } = require('console');
 const { logLoginAttempt } = require('./helpers/loginLogger');
 const { showAndSetDefaultPrinter } = require('./helpers/printerHelper');
 const { session } = require('electron');
-const flagPath = path.join(app.getPath('userData'), 'just_updated.flag');
- 
 
+
+const flagPath = path.join(app.getPath('userData'), 'Local Storage', 'leveldb', 'just_updated.flag');
 
 
 
@@ -62,8 +62,6 @@ function extractDbName(url) {
 
 class AppManager {
 
-
-    
     constructor() {
         this.helpers = helpers;
         this.mainWindow = null;
@@ -78,8 +76,6 @@ class AppManager {
         this.serial = null;
 
     }
-
-
 
     async createMainWindow() {
         console.log("🪟 createMainWindow called...");
@@ -272,7 +268,6 @@ class AppManager {
     }
 
 
-
     loadStoredDb() {
         if (!fs.existsSync(this.dbFilePath)) {
             console.log(`ℹ️ DB file does not exist at path: ${this.dbFilePath}`);
@@ -292,7 +287,6 @@ class AppManager {
 
         return "mobi";
     }
-
 
 
     migrateOldDbFileIfExists() {
@@ -323,8 +317,6 @@ class AppManager {
             console.error('❌ Error while migrating DB file:', e);
         }
     }
-
-
 
     async syncSystemTime() {
         try {
@@ -373,8 +365,6 @@ class AppManager {
         }
     }
 
-
-
     setupMainWindowEvents() {
         ipcMain.on('minimize-window', () => this.mainWindow.minimize());
 
@@ -404,8 +394,6 @@ class AppManager {
                 throw error;
             }
         });
-
-
 
 
         ipcMain.on('close-window', () => this.mainWindow.close());
@@ -475,8 +463,6 @@ class AppManager {
             });
         });
     }
-
-
 
     injectCustomTitleBar() {
         this.mainWindow.webContents.on('did-finish-load', () => {
@@ -619,7 +605,6 @@ class AppManager {
             `).catch(console.error);
         });
     }
-
 
 
     checkInternetAndTime() {
@@ -818,7 +803,6 @@ class AppManager {
     }
 
 
-
     injectUpdateOverlay() {
         console.log("injectUpdateOverlay ✅");
 
@@ -915,8 +899,6 @@ class AppManager {
     `).catch(console.error);
     }
 
-
-
     updateSpeedInTitleBar(speed) {
         if (speed && this.mainWindow && this.mainWindow.webContents) {
             const downloadMbps = speed.download.toFixed(2);
@@ -943,21 +925,25 @@ class AppManager {
 
 
             if (fs.existsSync(flagPath)) {
-                console.log("🚀 أول تشغيل بعد التحديث - إنشاء اختصار سطح المكتب...");
+                console.log("🟢 Detected just_updated.flag – will create shortcut...");
 
-                const createShortcutCommand = `
-                   powershell -Command "$s=(New-Object -COM WScript.Shell).CreateShortcut(\\"$env:USERPROFILE\\Desktop\\mobiCashier.lnk\\");$s.TargetPath='${process.execPath}';$s.WorkingDirectory='${path.dirname(process.execPath)}';$s.Save()"`;
+
+                const createShortcutCommand = `powershell -Command "$desktopPath=[Environment]::GetFolderPath('Desktop');$s=(New-Object -COM WScript.Shell).CreateShortcut($desktopPath + '\\\\mobiCashier.lnk');$s.TargetPath='${process.execPath}';$s.WorkingDirectory='${path.dirname(process.execPath)}';$s.Save()"`;
 
                 exec(createShortcutCommand, { windowsHide: true }, (err) => {
                     if (err) {
-                        console.error("❌ فشل في إنشاء الاختصار:", err);
+                        console.error("❌ فشل في إنشاء الاختصار المخصص:", err);
                     } else {
-                        console.log("✅ تم إنشاء الاختصار.");
+                        console.log("✅ تم إنشاء الاختصار المخصص.");
                     }
                 });
 
                 fs.unlinkSync(flagPath);
             }
+
+
+
+
 
 
             await clearElectronCache();
@@ -974,11 +960,9 @@ class AppManager {
 
             this.splash.loadFile(path.join(__dirname, 'public', 'splash.html'));
 
-
             setTimeout(async () => {
 
                 await this.createMainWindow();
-                createDesktopShortcutIfMissing();
 
                 console.log("before injectUpdateOverlay");
 
@@ -1046,7 +1030,6 @@ class AppManager {
 
 
                     try {
-
                         const deleteShortcutCommand = `del "%USERPROFILE%\\Desktop\\mobiCashier.lnk"`;
                         exec(deleteShortcutCommand, { shell: 'cmd.exe', windowsHide: true }, (err) => {
                             if (err) {
@@ -1072,12 +1055,30 @@ class AppManager {
 
                     try {
                         const shortcutPath = path.join(app.getPath('desktop'), 'mobiCashier.lnk');
+                        console.log("🔍 Looking for flag at:", flagPath);
+                        console.log("🧾 File exists?", fs.existsSync(flagPath));
+
                         if (fs.existsSync(shortcutPath)) {
-                            fs.unlinkSync(shortcutPath); // حذف الاختصار
+                            fs.unlinkSync(shortcutPath);
                             console.log("🗑️ Deleted desktop shortcut before restart");
                         }
                     } catch (err) {
                         console.error("❌ Failed to delete desktop shortcut:", err);
+                    }
+
+
+
+                    try {
+                        const flagDir = path.dirname(flagPath);
+                        if (!fs.existsSync(flagDir)) {
+                            fs.mkdirSync(flagDir, { recursive: true });
+                        }
+
+                        console.log("📌 Writing just_updated.flag to:", flagPath);
+                        fs.writeFileSync(flagPath, '1', 'utf8');
+                        console.log("📌 just_updated.flag created in leveldb folder.");
+                    } catch (err) {
+                        console.error("❌ Failed to create just_updated.flag in leveldb:", err);
                     }
 
                     autoUpdater.quitAndInstall(true, true);

@@ -57,6 +57,8 @@ async function showAndSetDefaultPrinter(mainWindow) {
             return 'تم الإلغاء';
         }
 
+
+
         const selectedPrinter = printers[selectedIndex];
         console.log("📋 Selected printer:", selectedPrinter);
 
@@ -91,3 +93,6 @@ async function showAndSetDefaultPrinter(mainWindow) {
 module.exports = {
     showAndSetDefaultPrinter,
 };
+
+
+

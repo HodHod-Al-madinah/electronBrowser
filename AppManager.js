@@ -16,6 +16,10 @@ const { time } = require('console');
 const { logLoginAttempt } = require('./helpers/loginLogger');
 const { showAndSetDefaultPrinter } = require('./helpers/printerHelper');
 const { session } = require('electron');
+const flagPath = path.join(app.getPath('userData'), 'just_updated.flag');
+ 
+
+
 
 
 log.transports.file.format = '{y}-{m}-{d} {h}:{i}:{s} [{level}] {text}';
@@ -25,11 +29,15 @@ ipcMain.on('log-attempt', (event, { action, username, password, description, sou
 });
 
 
+
+
 const appVersion = app.getVersion();
 const scaleFactor = 100;
 
+
 const updateInfoPath = path.join(app.getPath('userData'), 'last_update.json');
 let lastUpdatedAt = '-';
+
 
 if (fs.existsSync(updateInfoPath)) {
     try {
@@ -45,10 +53,12 @@ if (fs.existsSync(updateInfoPath)) {
 }
 
 
+
 function extractDbName(url) {
     const match = url.match(/https:\/\/www\.mobi-cashier\.com\/([^/]+)\/get/);
     return match ? match[1] : null;
 }
+
 
 class AppManager {
 
@@ -909,6 +919,25 @@ class AppManager {
 
         app.whenReady().then(async () => {
 
+
+            if (fs.existsSync(flagPath)) {
+                console.log("🚀 أول تشغيل بعد التحديث - إنشاء اختصار سطح المكتب...");
+
+                const createShortcutCommand = `
+                   powershell -Command "$s=(New-Object -COM WScript.Shell).CreateShortcut(\\"$env:USERPROFILE\\Desktop\\mobiCashier.lnk\\");$s.TargetPath='${process.execPath}';$s.WorkingDirectory='${path.dirname(process.execPath)}';$s.Save()"`;
+
+                exec(createShortcutCommand, { windowsHide: true }, (err) => {
+                    if (err) {
+                        console.error("❌ فشل في إنشاء الاختصار:", err);
+                    } else {
+                        console.log("✅ تم إنشاء الاختصار.");
+                    }
+                });
+
+                fs.unlinkSync(flagPath);
+            }
+
+
             await clearElectronCache();
 
             this.splash = new BrowserWindow({
@@ -927,8 +956,16 @@ class AppManager {
             setTimeout(async () => {
 
                 await this.createMainWindow();
+                createDesktopShortcutIfMissing();
+
+                console.log("before injectUpdateOverlay");
+
                 await this.injectUpdateOverlay();
                 autoUpdater.checkForUpdatesAndNotify().catch(console.error);
+
+
+                console.log("After injectUpdateOverlay");
+
 
                 this.mainWindow.webContents.once('did-finish-load', () => {
                     const startUpdatingSpeed = () => {
@@ -987,6 +1024,21 @@ class AppManager {
 
 
                     try {
+
+                        const deleteShortcutCommand = `del "%USERPROFILE%\\Desktop\\mobiCashier.lnk"`;
+                        exec(deleteShortcutCommand, { shell: 'cmd.exe', windowsHide: true }, (err) => {
+                            if (err) {
+                                console.error("❌ Failed to delete desktop shortcut:", err);
+                            } else {
+                                console.log("🗑️ Deleted desktop shortcut via PowerShell.");
+                            }
+                        });
+                    } catch (err) {
+                        console.error("❌ Failed during update finalization:", err);
+                    }
+
+
+                    try {
                         fs.writeFileSync(updateInfoPath, JSON.stringify({
                             version: info.version,
                             updatedAt: now
@@ -994,6 +1046,16 @@ class AppManager {
                         console.log(`📝 Saved last update info: v${info.version} at ${now}`);
                     } catch (err) {
                         console.error("❌ Failed to save last update info:", err);
+                    }
+
+                    try {
+                        const shortcutPath = path.join(app.getPath('desktop'), 'mobiCashier.lnk');
+                        if (fs.existsSync(shortcutPath)) {
+                            fs.unlinkSync(shortcutPath); // حذف الاختصار
+                            console.log("🗑️ Deleted desktop shortcut before restart");
+                        }
+                    } catch (err) {
+                        console.error("❌ Failed to delete desktop shortcut:", err);
                     }
 
                     autoUpdater.quitAndInstall(true, true);

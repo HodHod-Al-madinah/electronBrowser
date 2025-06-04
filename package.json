@@ -1,6 +1,6 @@
 {
   "name": "mobi-cashier",
-  "version": "1.0.25",
+  "version": "1.0.26",
   "main": "main.js",
   "description": "A browser-based cashier application   ",
   "author": "Hammam Alageed",

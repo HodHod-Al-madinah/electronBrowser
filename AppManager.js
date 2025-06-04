@@ -62,6 +62,8 @@ function extractDbName(url) {
 
 class AppManager {
 
+
+    
     constructor() {
         this.helpers = helpers;
         this.mainWindow = null;
@@ -76,6 +78,8 @@ class AppManager {
         this.serial = null;
 
     }
+
+
 
     async createMainWindow() {
         console.log("🪟 createMainWindow called...");
@@ -267,6 +271,8 @@ class AppManager {
 
     }
 
+
+
     loadStoredDb() {
         if (!fs.existsSync(this.dbFilePath)) {
             console.log(`ℹ️ DB file does not exist at path: ${this.dbFilePath}`);
@@ -286,6 +292,8 @@ class AppManager {
 
         return "mobi";
     }
+
+
 
     migrateOldDbFileIfExists() {
         const oldPath = path.join(app.getPath('userData'), 'selected_db.json');
@@ -315,6 +323,8 @@ class AppManager {
             console.error('❌ Error while migrating DB file:', e);
         }
     }
+
+
 
     async syncSystemTime() {
         try {
@@ -362,6 +372,8 @@ class AppManager {
             console.error('❌ فشل في جلب الوقت من الإنترنت:', err);
         }
     }
+
+
 
     setupMainWindowEvents() {
         ipcMain.on('minimize-window', () => this.mainWindow.minimize());
@@ -463,6 +475,8 @@ class AppManager {
             });
         });
     }
+
+
 
     injectCustomTitleBar() {
         this.mainWindow.webContents.on('did-finish-load', () => {
@@ -605,6 +619,8 @@ class AppManager {
             `).catch(console.error);
         });
     }
+
+
 
     checkInternetAndTime() {
         const command = `powershell -Command "(Test-Connection -ComputerName www.google.com -Count 1 -Quiet)"`;
@@ -801,6 +817,8 @@ class AppManager {
         });
     }
 
+
+
     injectUpdateOverlay() {
         console.log("injectUpdateOverlay ✅");
 
@@ -897,6 +915,8 @@ class AppManager {
     `).catch(console.error);
     }
 
+
+
     updateSpeedInTitleBar(speed) {
         if (speed && this.mainWindow && this.mainWindow.webContents) {
             const downloadMbps = speed.download.toFixed(2);
@@ -914,6 +934,8 @@ class AppManager {
             console.log('❌ Could not measure network speed.');
         }
     }
+
+
 
     run() {
 

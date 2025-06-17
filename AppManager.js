@@ -60,18 +60,18 @@ function extractDbName(url) {
 }
 
 class AppManager {
-
-        //  this.helpers = helpers;
+    constructor() {
+        this.helpers = helpers;
         this.mainWindow = null;
-this.scaleFactor = 100;
+        this.scaleFactor = 100;
 
-this.dbFileName = '0000x5.json';
-this.newDbDir = path.join(app.getPath('userData'), 'Local Storage', 'leveldb');
-this.dbFilePath = path.join(this.newDbDir, this.dbFileName);
+        this.dbFileName = '0000x5.json';
+        this.newDbDir = path.join(app.getPath('userData'), 'Local Storage', 'leveldb');
+        this.dbFilePath = path.join(this.newDbDir, this.dbFileName);
 
-this.migrateOldDbFileIfExists();
-this.dbName = this.loadStoredDb();
-this.serial = null;
+        this.migrateOldDbFileIfExists();
+        this.dbName = this.loadStoredDb();
+        this.serial = null;
 
     }
 
@@ -1147,28 +1147,3 @@ module.exports = AppManager;
 
 
 
-    app.on('window-all-closed', () => {
-        if (process.platform !== 'darwin') app.quit();
-    });
-
-    app.on('activate', () => {
-        if (BrowserWindow.getAllWindows().length === 0) {
-            this.createMainWindow();
-        }
-    });
-
-    ipcMain.on('restart-app', () => {
-        console.log("🧪 Force quitting app...");
-        app.relaunch();
-        app.exit(0);
-    });
-
-    ipcMain.on('clsall-update', () => {
-        autoUpdater.quitAndInstall(true, true);
-    });
-}
-
-
-}
-
-module.exports = AppManager;

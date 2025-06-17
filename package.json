@@ -2,7 +2,7 @@
   "name": "mobi-cashier",
   "version": "1.2.0",
   "main": "main.js",
-  "description": "A browser-based cashier application   ",
+  "description": "A browser-based cashier application",
   "author": "Hammam Alageed",
   "license": "ISC",
   "scripts": {

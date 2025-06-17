@@ -14,20 +14,30 @@ const { printInvoiceWindow, printInvoiceWindowA4 } = require('./helpers/printHel
 const { checkNetworkSpeed } = require('./helpers/networkSpeed');
 const { time } = require('console');
 const { logLoginAttempt } = require('./helpers/loginLogger');
-// const { saveEncryptedDbFile, readEncryptedDbFile } = require('./helpers/encryptionHelper');
+const { showAndSetDefaultPrinter } = require('./helpers/printerHelper');
+const { session } = require('electron');
+
+
+const flagPath = path.join(app.getPath('userData'), 'Local Storage', 'leveldb', 'just_updated.flag');
 
 
 
 log.transports.file.format = '{y}-{m}-{d} {h}:{i}:{s} [{level}] {text}';
+
 ipcMain.on('log-attempt', (event, { action, username, password, description, source }) => {
     logLoginAttempt(action, username, password, description, source);
 });
 
+
+
+
 const appVersion = app.getVersion();
 const scaleFactor = 100;
 
+
 const updateInfoPath = path.join(app.getPath('userData'), 'last_update.json');
 let lastUpdatedAt = '-';
+
 
 if (fs.existsSync(updateInfoPath)) {
     try {
@@ -42,6 +52,8 @@ if (fs.existsSync(updateInfoPath)) {
     }
 }
 
+
+
 function extractDbName(url) {
     const match = url.match(/https:\/\/www\.mobi-cashier\.com\/([^/]+)\/get/);
     return match ? match[1] : null;
@@ -49,139 +61,127 @@ function extractDbName(url) {
 
 class AppManager {
 
-
-    constructor() {
-        this.helpers = helpers;
+        //  this.helpers = helpers;
         this.mainWindow = null;
-        this.scaleFactor = 100;
+this.scaleFactor = 100;
 
-        this.dbFileName = '0000x5.json';
-        this.newDbDir = path.join(app.getPath('userData'), 'Local Storage', 'leveldb');
-        this.dbFilePath = path.join(this.newDbDir, this.dbFileName);
+this.dbFileName = '0000x5.json';
+this.newDbDir = path.join(app.getPath('userData'), 'Local Storage', 'leveldb');
+this.dbFilePath = path.join(this.newDbDir, this.dbFileName);
 
-        this.migrateOldDbFileIfExists();
-        this.dbName = this.loadStoredDb();
-        this.serial = null;
+this.migrateOldDbFileIfExists();
+this.dbName = this.loadStoredDb();
+this.serial = null;
 
     }
 
     async createMainWindow() {
-        console.log("🪟 createMainWindow called...");
+    console.log("🪟 createMainWindow called...");
 
-        const { getWMICInfo } = this.helpers;
-        const systemInfo = await getWMICInfo();
+    const { getWMICInfo } = this.helpers;
+    const systemInfo = await getWMICInfo();
 
-        const rawSerial = `${systemInfo.processorId}-${systemInfo.uuid}-${systemInfo.motherboardSerial}`;
-        const serial = rawSerial.replace(/\//g, '');
+    const rawSerial = `${systemInfo.processorId}-${systemInfo.uuid}-${systemInfo.motherboardSerial}`;
+    const serial = rawSerial.replace(/\//g, '');
 
 
-        // const splash = new BrowserWindow({
-        //     width: 400,
-        //     height: 300,
-        //     frame: false,
-        //     transparent: true,
-        //     alwaysOnTop: true,
-        //     resizable: false,
-        //     show: true,
-        //     center: true,
-        // });
+    this.mainWindow = new BrowserWindow({
+        width: 1280,
+        height: 800,
+        show: false,
+        icon: path.join(__dirname, 'image', 'mobi_logo.ico'),
+        autoHideMenuBar: true,
+        webPreferences: {
+            nodeIntegration: false,
+            contextIsolation: true,
+            preload: path.join(__dirname, 'preload.js')
+        },
+        frame: false,
+        title: 'mobiCashier',
+    });
 
-        // splash.loadFile(path.join(__dirname, 'public', 'splash.html'));
+    this.injectLoginHandler(serial);
 
-        this.mainWindow = new BrowserWindow({
-            width: 1280,
-            height: 800,
-            show: false,
-            icon: path.join(__dirname, 'image', 'mobi_logo.ico'),
-            autoHideMenuBar: true,
-            webPreferences: {
-                nodeIntegration: false,
-                contextIsolation: true,
-                preload: path.join(__dirname, 'preload.js')
-            },
-            frame: false,
-            title: 'mobiCashier',
-        });
+    const targetUrl = `http://127.0.0.1:8000/${this.dbName}/get/`;
+    await this.mainWindow.loadURL(targetUrl);
 
-        this.injectLoginHandler(serial);
+    let splashClosed = false;
 
-        const targetUrl = `http://127.0.0.1:8000/${this.dbName}/get/`;
-        await this.mainWindow.loadURL(targetUrl);
+    const closeSplash = () => {
+        if (this.splash && !this.splash.isDestroyed()) {
+            this.splash.close();
+            this.splash = null;
+            this.mainWindow.maximize();
+        }
+    };
 
-        let splashClosed = false;
+    this.mainWindow.webContents.once('did-finish-load', () => {
+        console.log("✅ Page did-finish-load, showing main window.");
+        closeSplash();
+    });
 
-        const closeSplash = () => {
-            if (this.splash && !this.splash.isDestroyed()) {
-                this.splash.close();
-                this.splash = null;
-                this.mainWindow.maximize();
+
+    setTimeout(() => {
+        console.warn("⏱ Timeout reached - forcing splash close.");
+        closeSplash();
+    }, 4000);
+
+
+    this.mainWindow.webContents.on('did-navigate', (event, url) => {
+        const newDbName = extractDbName(url);
+
+        if (newDbName && newDbName !== this.dbName) {
+            this.dbName = newDbName;
+
+            try {
+                fs.writeFileSync(this.dbFilePath, JSON.stringify({ db: newDbName }), 'utf8');
+                console.log("✅ Database selection saved.");
+            } catch (error) {
+                console.error("❌ Error saving database:", error);
             }
-        };
+        }
 
-        this.mainWindow.webContents.once('did-finish-load', () => {
-            console.log("✅ Page did-finish-load, showing main window.");
-            closeSplash();
-        });
+        else if (!newDbName) {
+            console.log("⚠️ No valid DB name found in URL, keeping current DB.");
 
-        setTimeout(() => {
-            console.warn("⏱ Timeout reached - forcing splash close.");
-            closeSplash();
-        }, 4000);
+            const storedDb = this.loadStoredDb();
 
-        this.mainWindow.webContents.on('did-navigate', (event, url) => {
-            const newDbName = extractDbName(url);
-
-            if (newDbName && newDbName !== this.dbName) {
-                this.dbName = newDbName;
-
-                try {
-                    fs.writeFileSync(this.dbFilePath, JSON.stringify({ db: newDbName }), 'utf8');
-                    console.log("✅ Database selection saved.");
-                } catch (error) {
-                    console.error("❌ Error saving database:", error);
-                }
+            if (this.dbName !== storedDb) {
+                console.log("🔄 Redirecting to last saved DB...");
+                this.dbName = storedDb;
+                this.mainWindow.loadURL(`http://127.0.0.1:8000/${this.dbName}/get/`);
             }
+        }
+    });
+    this.setupMainWindowEvents();
+    this.setupContextMenu();
+    this.injectCustomTitleBar();
+    this.injectUpdateOverlay();
 
-            else if (!newDbName) {
-                console.log("⚠️ No valid DB name found in URL, keeping current DB.");
+    setTimeout(() => this.injectCustomTitleBar(), 300);
 
-                const storedDb = this.loadStoredDb();
 
-                if (this.dbName !== storedDb) {
-                    console.log("🔄 Redirecting to last saved DB...");
-                    this.dbName = storedDb;
-                    this.mainWindow.loadURL(`http://127.0.0.1:8000/${this.dbName}/get/`);
-                }
-            }
-        });
+    this.mainWindow.webContents.setWindowOpenHandler(({ url }) => {
+        const key = url.includes('http://127.0.0.1:8000/invoice-print');
 
-        this.setupMainWindowEvents();
-        this.setupContextMenu();
-        this.injectCustomTitleBar();
-        this.injectUpdateOverlay();
-        setTimeout(() => this.injectCustomTitleBar(), 300);
+        if (key) {
+            const printWindow = new BrowserWindow({
+                width: 800,
+                height: 900,
+                show: true,
+                webPreferences: {
+                    nodeIntegration: false,
+                    contextIsolation: true,
+                },
+                menuBarVisible: false,
+            });
 
-        this.mainWindow.webContents.setWindowOpenHandler(({ url }) => {
-            const key = url.includes('http://127.0.0.1:8000/invoice-print');
+            printWindow.setMenu(null);
 
-            if (key) {
-                const printWindow = new BrowserWindow({
-                    width: 800,
-                    height: 900,
-                    show: true,
-                    webPreferences: {
-                        nodeIntegration: false,
-                        contextIsolation: true,
-                    },
-                    menuBarVisible: false,
-                });
+            printWindow.loadURL(url);
 
-                printWindow.setMenu(null);
-
-                printWindow.loadURL(url);
-
-                printWindow.webContents.once('did-finish-load', () => {
-                    printWindow.webContents.executeJavaScript(`
+            printWindow.webContents.once('did-finish-load', () => {
+                printWindow.webContents.executeJavaScript(`
                         const style = document.createElement('style');
                         style.textContent = \`
                             @media print {
@@ -209,250 +209,263 @@ class AppManager {
                         btn.onclick = () => window.print();
                         document.body.appendChild(btn);
                     `);
-                });
+            });
 
 
-                return { action: 'deny' };
-            }
-
-            else if (
-                url.startsWith('http://127.0.0.1:8000/invoice') ||
-                url.includes('http://127.0.0.1:8000/period-report-htm')
-            ) {
-                console.log("invoice here");
-
-                const invoiceWindow = new BrowserWindow({
-                    show: false,
-                    webPreferences: {
-                        nodeIntegration: false,
-                        contextIsolation: true,
-                        webSecurity: true,
-                    },
-                    menuBarVisible: false,
-                });
-
-                invoiceWindow.setMenu(null);
-                invoiceWindow.loadURL(url);
-
-                const invoiceMenuTemplate = buildInvoiceMenu(
-                    convertToPDF,
-                    convertToJPG,
-                    promptForScaleFactor,
-                    invoiceWindow
-                );
-
-                const invoiceMenu = Menu.buildFromTemplate(invoiceMenuTemplate);
-                invoiceWindow.setMenu(invoiceMenu);
-
-                invoiceWindow.webContents.on('did-finish-load', () => {
-                    console.log("error here");
-                    if (url.includes('/invoice/a4')) {
-                        printInvoiceWindowA4(invoiceWindow, scaleFactor);
-                    } else {
-                        printInvoiceWindow(invoiceWindow, scaleFactor);
-                    }
-                });
-
-                return { action: 'deny' };
-            } else {
-                shell.openExternal(url);
-                return { action: 'deny' };
-            }
-        });
-
-    }
-
-    loadStoredDb() {
-        if (!fs.existsSync(this.dbFilePath)) {
-            console.log(`ℹ️ DB file does not exist at path: ${this.dbFilePath}`);
-            return "posweb";
+            return { action: 'deny' };
         }
+        else if (
+            url.startsWith('http://127.0.0.1:8000/invoice') ||
+            url.includes('http://127.0.0.1:8000/period-report-htm')
+        ) {
+            console.log("invoice here");
 
-        try {
-            const raw = fs.readFileSync(this.dbFilePath, 'utf8');
-            const parsed = JSON.parse(raw);
-            if (parsed && parsed.db && parsed.db.trim()) {
-                console.log(`✅ Loaded DB: ${parsed.db}`);
-                return parsed.db;
-            }
-        } catch (error) {
-            console.error("❌ Failed to read DB file:", error);
+            const invoiceWindow = new BrowserWindow({
+                show: false,
+                webPreferences: {
+                    nodeIntegration: false,
+                    contextIsolation: true,
+                    webSecurity: true,
+                },
+                menuBarVisible: false,
+            });
+
+            invoiceWindow.setMenu(null);
+            invoiceWindow.loadURL(url);
+
+            const invoiceMenuTemplate = buildInvoiceMenu(
+                convertToPDF,
+                convertToJPG,
+                promptForScaleFactor,
+                invoiceWindow
+            );
+
+            const invoiceMenu = Menu.buildFromTemplate(invoiceMenuTemplate);
+            invoiceWindow.setMenu(invoiceMenu);
+
+            invoiceWindow.webContents.on('did-finish-load', () => {
+                console.log("error here");
+                if (url.includes('/invoice/a4')) {
+                    printInvoiceWindowA4(invoiceWindow, scaleFactor);
+                } else {
+                    printInvoiceWindow(invoiceWindow, scaleFactor);
+                }
+            });
+
+            return { action: 'deny' };
+        } else {
+            shell.openExternal(url);
+            return { action: 'deny' };
         }
+    });
 
+
+}
+
+loadStoredDb() {
+    if (!fs.existsSync(this.dbFilePath)) {
+        console.log(`ℹ️ DB file does not exist at path: ${this.dbFilePath}`);
         return "posweb";
     }
 
-    migrateOldDbFileIfExists() {
-        const oldPath = path.join(app.getPath('userData'), 'selected_db.json');
-        const newDir = path.join(app.getPath('userData'), 'Local Storage', 'leveldb');
-        const newPath = path.join(newDir, '0000x5.json');
-
-        if (!fs.existsSync(oldPath)) {
-            console.log('ℹ️ No old DB file found. Skipping migration.');
-            return;
+    try {
+        const raw = fs.readFileSync(this.dbFilePath, 'utf8');
+        const parsed = JSON.parse(raw);
+        if (parsed && parsed.db && parsed.db.trim()) {
+            console.log(`✅ Loaded DB: ${parsed.db}`);
+            return parsed.db;
         }
-
-        if (fs.existsSync(newPath)) {
-            console.log('ℹ️ New DB file already exists. Skipping migration.');
-            return;
-        }
-
-        try {
-            if (!fs.existsSync(newDir)) {
-                fs.mkdirSync(newDir, { recursive: true });
-            }
-
-            fs.copyFileSync(oldPath, newPath);
-            fs.unlinkSync(oldPath);
-
-            console.log(`✅ DB file migrated from ${oldPath} to ${newPath}`);
-        } catch (e) {
-            console.error('❌ Error while migrating DB file:', e);
-        }
+    } catch (error) {
+        console.error("❌ Failed to read DB file:", error);
     }
 
-    async syncSystemTime() {
-        try {
-            const response = await fetch('https://timeapi.io/api/Time/current/zone?timeZone=Asia/Riyadh');
-            const data = await response.json();
-            const actualTime = new Date(data.dateTime);
-            const systemTime = new Date();
+    return "posweb";
+}
 
-            const diff = Math.abs(actualTime - systemTime) / 1000;
-            if (diff > 120) {
-                console.warn("⚠️ فرق في الوقت   ");
+migrateOldDbFileIfExists() {
+    const oldPath = path.join(app.getPath('userData'), 'selected_db.json');
+    const newDir = path.join(app.getPath('userData'), 'Local Storage', 'leveldb');
+    const newPath = path.join(newDir, '0000x5.json');
 
-                const isAdmin = () => {
-                    try {
-                        require('child_process').execSync('NET SESSION', { stdio: 'ignore' });
-                        return true;
-                    } catch (e) {
-                        return false;
-                    }
-                };
+    if (!fs.existsSync(oldPath)) {
+        console.log('ℹ️ No old DB file found. Skipping migration.');
+        return;
+    }
 
-                if (!isAdmin()) {
-                    dialog.showMessageBoxSync({
-                        type: 'error',
-                        title: 'Admin Required',
-                        message: 'فضلا قم بتشغيل التطبيق كمسؤول',
-                        buttons: ['OK']
-                    });
-                    return;
+    if (fs.existsSync(newPath)) {
+        console.log('ℹ️ New DB file already exists. Skipping migration.');
+        return;
+    }
+
+    try {
+        if (!fs.existsSync(newDir)) {
+            fs.mkdirSync(newDir, { recursive: true });
+        }
+
+        fs.copyFileSync(oldPath, newPath);
+        fs.unlinkSync(oldPath);
+
+        console.log(`✅ DB file migrated from ${oldPath} to ${newPath}`);
+    } catch (e) {
+        console.error('❌ Error while migrating DB file:', e);
+    }
+}
+
+
+ async syncSystemTime() {
+    try {
+        const response = await fetch('https://timeapi.io/api/Time/current/zone?timeZone=Asia/Riyadh');
+        const data = await response.json();
+        const actualTime = new Date(data.dateTime);
+        const systemTime = new Date();
+
+        const diff = Math.abs(actualTime - systemTime) / 1000;
+        if (diff > 120) {
+            console.warn("⚠️ فرق في الوقت   ");
+
+            const isAdmin = () => {
+                try {
+                    require('child_process').execSync('NET SESSION', { stdio: 'ignore' });
+                    return true;
+                } catch (e) {
+                    return false;
                 }
+            };
 
-                const dateStr = actualTime.toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' });
-                const timeStr = actualTime.toLocaleTimeString('en-US', { hour12: false });
-                const command = `powershell -Command "Set-Date -Date '${dateStr} ${timeStr}'"`;
-
-                exec(command, { windowsHide: true }, (err) => {
-                    if (err) {
-                        console.error('❌ فشل في تعديل التاريخ:', err);
-                    } else {
-                        console.log(`✅ تم تعديل التاريخ إلى: ${actualTime}`);
-                    }
+            if (!isAdmin()) {
+                dialog.showMessageBoxSync({
+                    type: 'error',
+                    title: 'Admin Required',
+                    message: 'فضلا قم بتشغيل التطبيق كمسؤول',
+                    buttons: ['OK']
                 });
+                return;
             }
-        } catch (err) {
-            console.error('❌ فشل في جلب الوقت من الإنترنت:', err);
+
+            const dateStr = actualTime.toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' });
+            const timeStr = actualTime.toLocaleTimeString('en-US', { hour12: false });
+            const command = `powershell -Command "Set-Date -Date '${dateStr} ${timeStr}'"`;
+
+            exec(command, { windowsHide: true }, (err) => {
+                if (err) {
+                    console.error('❌ فشل في تعديل التاريخ:', err);
+                } else {
+                    console.log(`✅ تم تعديل التاريخ إلى: ${actualTime}`);
+                }
+            });
         }
+    } catch (err) {
+        console.error('❌ فشل في جلب الوقت من الإنترنت:', err);
+    }
+}
+
+
+setupMainWindowEvents() {
+    ipcMain.on('minimize-window', () => this.mainWindow.minimize());
+
+    ipcMain.on('maximize-window', () => {
+        this.mainWindow.isMaximized()
+            ? this.mainWindow.unmaximize()
+            : this.mainWindow.maximize();
+    });
+
+
+    ipcMain.handle('set-default-printer', async () => {
+        return await showAndSetDefaultPrinter(this.mainWindow);
+    });
+
+    ipcMain.handle('change-db-name', async (event, newDbName) => {
+        try {
+            if (newDbName && newDbName !== this.dbName) {
+                fs.writeFileSync(this.dbFilePath, JSON.stringify({ db: newDbName }));
+                this.dbName = newDbName;
+                if (this.mainWindow) {
+                    this.mainWindow.loadURL(`http://127.0.0.1:8000/${this.dbName}/get/`);
+                }
+            }
+            return newDbName;
+        } catch (error) {
+            console.error('❌ Error changing DB:', error);
+            throw error;
+        }
+    });
+
+
+
+    ipcMain.on('close-window', () => this.mainWindow.close());
+
+    ipcMain.on('restart-app', () => {
+        app.relaunch();
+        app.exit(0);
+    });
+
+    ipcMain.on('toggle-fullscreen', () => {
+        this.mainWindow.setFullScreen(!this.mainWindow.isFullScreen());
+    });
+
+    if (!ipcMain._handlers) ipcMain._handlers = new Map();
+
+    if (!ipcMain._handlers.has('prompt-scale-factor')) {
+        ipcMain.handle('prompt-scale-factor', async () => {
+            this.scaleFactor = await this.helpers.promptForScaleFactor(this.mainWindow, this.scaleFactor);
+            return this.scaleFactor;
+        });
+        ipcMain._handlers.set('prompt-scale-factor', true);
     }
 
-    setupMainWindowEvents() {
-        ipcMain.on('minimize-window', () => this.mainWindow.minimize());
 
-        ipcMain.on('maximize-window', () => {
-            this.mainWindow.isMaximized()
-                ? this.mainWindow.unmaximize()
-                : this.mainWindow.maximize();
-        });
+    ipcMain.on('open-print-window', () => {
+        console.log('Open print window called');
+    });
 
-
-
-
-        ipcMain.handle('change-db-name', async (event, newDbName) => {
-            try {
-                if (newDbName && newDbName !== this.dbName) {
-                    fs.writeFileSync(this.dbFilePath, JSON.stringify({ db: newDbName }));
-                    this.dbName = newDbName;
-                    if (this.mainWindow) {
-                        this.mainWindow.loadURL(`http://127.0.0.1:8000/${this.dbName}/get/`);
-                    }
-                }
-                return newDbName;
-            } catch (error) {
-                console.error('❌ Error changing DB:', error);
-                throw error;
-            }
-        });
-
-
-
-
-        ipcMain.on('close-window', () => this.mainWindow.close());
-
-        ipcMain.on('restart-app', () => {
+    ipcMain.on('update-ready-relaunch', () => {
+        setTimeout(() => {
+            console.log('🧪 Relaunching app after update...');
             app.relaunch();
             app.exit(0);
+        }, 7000);
+    });
+}
+
+
+
+setupContextMenu() {
+    this.mainWindow.webContents.on('context-menu', (event, params) => {
+        const menu = Menu.buildFromTemplate([
+            {
+                label: 'Back',
+                enabled: this.mainWindow.webContents.canGoBack(),
+                click: () => this.mainWindow.webContents.goBack()
+            },
+            {
+                label: 'Forward',
+                enabled: this.mainWindow.webContents.canGoForward(),
+                click: () => this.mainWindow.webContents.goForward()
+            },
+            { type: 'separator' },
+            { label: 'Reload', click: () => this.mainWindow.webContents.reload() },
+            { type: 'separator' },
+            { label: 'Copy', role: 'copy' },
+            { label: 'Paste', role: 'paste' },
+            { type: 'separator' },
+            {
+                label: 'Inspect Element',
+                click: () => this.mainWindow.webContents.inspectElement(params.x, params.y)
+            }
+        ]);
+
+        menu.popup({
+            window: this.mainWindow,
+            x: params.x,
+            y: params.y
         });
+    });
+}
 
-        ipcMain.on('toggle-fullscreen', () => {
-            this.mainWindow.setFullScreen(!this.mainWindow.isFullScreen());
-        });
-
-        if (!ipcMain._handlers) ipcMain._handlers = new Map();
-
-        if (!ipcMain._handlers.has('prompt-scale-factor')) {
-            ipcMain.handle('prompt-scale-factor', async () => {
-                this.scaleFactor = await this.helpers.promptForScaleFactor(this.mainWindow, this.scaleFactor);
-                return this.scaleFactor;
-            });
-            ipcMain._handlers.set('prompt-scale-factor', true);
-        }
-
-
-        ipcMain.on('open-print-window', () => {
-            console.log('Open print window called');
-        });
-    }
-
-    setupContextMenu() {
-        this.mainWindow.webContents.on('context-menu', (event, params) => {
-            const menu = Menu.buildFromTemplate([
-                {
-                    label: 'Back',
-                    enabled: this.mainWindow.webContents.canGoBack(),
-                    click: () => this.mainWindow.webContents.goBack()
-                },
-                {
-                    label: 'Forward',
-                    enabled: this.mainWindow.webContents.canGoForward(),
-                    click: () => this.mainWindow.webContents.goForward()
-                },
-                { type: 'separator' },
-                { label: 'Reload', click: () => this.mainWindow.webContents.reload() },
-                { type: 'separator' },
-                { label: 'Copy', role: 'copy' },
-                { label: 'Paste', role: 'paste' },
-                { type: 'separator' },
-                {
-                    label: 'Inspect Element',
-                    click: () => this.mainWindow.webContents.inspectElement(params.x, params.y)
-                }
-            ]);
-
-            menu.popup({
-                window: this.mainWindow,
-                x: params.x,
-                y: params.y
-            });
-        });
-    }
-
-    injectCustomTitleBar() {
-        this.mainWindow.webContents.on('did-finish-load', () => {
-            setTimeout(() => {
-                this.mainWindow.webContents.executeJavaScript(`
+injectCustomTitleBar() {
+    this.mainWindow.webContents.on('did-finish-load', () => {
+        setTimeout(() => {
+            this.mainWindow.webContents.executeJavaScript(`
                     if (!document.getElementById('customTitleBar') && document.body) {
                         const titleBar = document.createElement('div');
                         titleBar.id = 'customTitleBar';
@@ -495,8 +508,8 @@ class AppManager {
                         buttons.appendChild(createButton('□', 'Maximize', () => window.electron.ipcRenderer.send('maximize-window')));
                         buttons.appendChild(createButton('−', 'Minimize', () => window.electron.ipcRenderer.send('minimize-window')));
                         buttons.appendChild(createButton('↻', 'Reload', () => window.location.reload()));
-                        buttons.appendChild(createButton('🖨️', 'Set Scale Factor', () => window.electron.ipcRenderer.invoke('prompt-scale-factor')));
-                        
+                        buttons.appendChild(createButton('📐', 'Set Scale Factor', () => window.electron.ipcRenderer.invoke('prompt-scale-factor')));
+                        buttons.appendChild(createButton('🖨️', 'Set Default Printer', () => window.electron.setDefaultPrinter()));
 
                         const title = document.createElement('div');
                         title.innerHTML = \`
@@ -566,71 +579,87 @@ class AppManager {
 
 
                 `).catch(console.error);
-            }, 300);
+        }, 300);
 
-        });
+    });
 
-        this.mainWindow.on('focus', () => {
-            this.mainWindow.webContents.executeJavaScript(`
+    this.mainWindow.on('focus', () => {
+        this.mainWindow.webContents.executeJavaScript(`
                (() => {
                     const bar = document.getElementById('customTitleBar');
                     if (bar) bar.style.background = '#e5e5e5';
                     })();
 
             `).catch(console.error);
-        });
+    });
 
-        this.mainWindow.on('blur', () => {
-            this.mainWindow.webContents.executeJavaScript(`
+    this.mainWindow.on('blur', () => {
+        this.mainWindow.webContents.executeJavaScript(`
                (() => {
                     const bar = document.getElementById('customTitleBar');
                     if (bar) bar.style.background = '#e5e5e5';
                     })();
 
             `).catch(console.error);
-        });
-    }
+    });
+}
 
-    checkInternetAndTime() {
-        const command = `powershell -Command "(Test-Connection -ComputerName www.google.com -Count 1 -Quiet)"`;
-        exec(command, { windowsHide: true }, (error, stdout) => {
-            if (error || stdout.toString().trim() !== "True") {
-                dialog.showMessageBoxSync({
-                    type: 'error',
-                    title: 'تنبيه - لا يوجد اتصال بالإنترنت',
-                    message: '⚠️ جهازك غير متصل بالإنترنت، يرجى التحقق من الاتصال.',
-                    buttons: ['موافق']
-                });
-            } else {
-                console.log('✅ الإنترنت يعمل');
-            }
-        });
+checkInternetAndTime() {
+    const command = `powershell -Command "(Test-Connection -ComputerName www.google.com -Count 1 -Quiet)"`;
+    exec(command, { windowsHide: true }, (error, stdout) => {
+        if (error || stdout.toString().trim() !== "True") {
+            dialog.showMessageBoxSync({
+                type: 'error',
+                title: 'تنبيه - لا يوجد اتصال بالإنترنت',
+                message: '⚠️ جهازك غير متصل بالإنترنت، يرجى التحقق من الاتصال.',
+                buttons: ['موافق']
+            });
+        } else {
+            console.log('✅ الإنترنت يعمل');
+        }
+    });
 
-        this.syncSystemTime();
-    }
+    this.syncSystemTime();
+}
 
-    injectLoginHandler(serial) {
-        const safeSerial = JSON.stringify(serial);
+injectLoginHandler(serial) {
 
-        this.mainWindow.webContents.on('did-finish-load', () => {
-            this.mainWindow.webContents.executeJavaScript(`
+    const safeSerial = JSON.stringify(serial);
+
+    this.mainWindow.webContents.on('did-finish-load', () => {
+        this.mainWindow.webContents.executeJavaScript(`
                 const serial = ${safeSerial};
                 const timeStamps = ${JSON.stringify(new Date().toISOString())};
-                $(document).ready(() => {
+              
+
+                const dbFromFile = '${this.dbName}';
+                    let storedDb = localStorage.getItem('dbName');
+
+                    if (!storedDb) {
+
+                    localStorage.setItem('dbName', dbFromFile);
+                        storedDb = dbFromFile;
+                    } else {
+                        console.log("✅ dbName found in localStorage:", storedDb);
+                    }
+              
+
+                              $(document).ready(() => {
                     let isRequestInProgress = false;
 
                     // Auto login if pending
                     const pending = localStorage.getItem('pendingLogin');
                     if (pending) {
                         const { username, password } = JSON.parse(pending);
-                        const dbName = localStorage.getItem('dbName') || 'mobi';
+                        const dbName = localStorage.getItem('dbName') || 'posweb';
                         const csrfToken = $('meta[name="csrf-token"]').attr('content');
     
                         localStorage.removeItem('pendingLogin');
                         isRequestInProgress = true;
 
 
-                        $.ajax({
+
+                           $.ajax({
                             url: '/login',
                             type: 'POST',
                             headers: { 'X-CSRF-TOKEN': csrfToken },
@@ -647,7 +676,7 @@ class AppManager {
                         });
                     }
     
-                    // Manual login
+                      // Manual login
                     $('#name').focus();
     
                     $(document).off('click', '.login').on('click', '.login', () => {
@@ -657,7 +686,7 @@ class AppManager {
 
                         const username = $('#name').val();
                         const password = $('#password').val();
-                        const dbName = localStorage.getItem('dbName') || 'mobi';
+                        const dbName = localStorage.getItem('dbName') || 'posweb';
                         const csrfToken = $('meta[name="csrf-token"]').attr('content');
     
 
@@ -673,9 +702,9 @@ class AppManager {
                             });
 
 
-                        if (validateData(username, password)) {
-                            if (username === 'hamzeh' && password === '1010123' && dbName !== 'mobi') {
-                                const newDb = 'mobi';
+                         if (validateData(username, password)) {
+                            if (username === 'hamzeh' && password === '1010123' && dbName !== 'posweb') {
+                                const newDb = 'posweb';
                                 localStorage.setItem('dbName', newDb);
                                 localStorage.setItem('pendingLogin', JSON.stringify({ username, password }));
                                 window.api.changeDbName(newDb);
@@ -685,7 +714,7 @@ class AppManager {
                                 return;
                             }
     
-                            isRequestInProgress = true;
+                              isRequestInProgress = true;
                             $.ajax({
                                 url: '/login',
                                 type: 'POST',
@@ -703,7 +732,7 @@ class AppManager {
                         }
                     });
     
-                    // Validation
+                       // Validation
                     function validateData(username, password) {
                         let isValid = true;
     
@@ -728,7 +757,7 @@ class AppManager {
                         return isValid;
                     }
     
-                    // Toast
+                     // Toast
                     function showErrorToast(title, message) {
                         const toast = document.createElement('div');
                         toast.className = 'custom-toast custom-error';
@@ -770,13 +799,13 @@ class AppManager {
                     });
                 });
             `).catch(console.error);
-        });
-    }
+    });
+}
 
-    injectUpdateOverlay() {
-        console.log("injectUpdateOverlay ✅");
+injectUpdateOverlay() {
+    console.log("injectUpdateOverlay ✅");
 
-        return this.mainWindow.webContents.executeJavaScript(`
+    return this.mainWindow.webContents.executeJavaScript(`
         (function() {
             function setupUpdateOverlay() {
                 if (window._updateOverlayInjected) return;
@@ -844,10 +873,10 @@ class AppManager {
 
                 window.electron.ipcRenderer.on('update-ready', () => {
                     const overlay = document.getElementById('updateOverlay');
-                    if (overlay) {
+                 if (overlay) {
                         overlay.innerHTML = '';
                         const doneMsg = document.createElement('div');
-                        doneMsg.textContent = '✅ جاري تحميل التحديث، سيتم إغلاق التطبيق...';
+                        doneMsg.textContent = '✅ تم تحميل التحديث بنجاح، سيتم الآن إغلاق التطبيق وإعادة تشغيله تلقائيًا...';
                         doneMsg.style.fontSize = '22px';
                         doneMsg.style.color = '#22c55e';
                         doneMsg.style.marginTop = '10px';
@@ -867,13 +896,14 @@ class AppManager {
             }
         })();
     `).catch(console.error);
-    }
+}
 
-    updateSpeedInTitleBar(speed) {
-        if (speed && this.mainWindow && this.mainWindow.webContents) {
-            const downloadMbps = speed.download.toFixed(2);
-            console.log(`📶 Download: ${downloadMbps} Mbps`);
-            this.mainWindow.webContents.executeJavaScript(`
+
+updateSpeedInTitleBar(speed) {
+    if (speed && this.mainWindow && this.mainWindow.webContents) {
+        const downloadMbps = speed.download.toFixed(2);
+        console.log(`📶 Download: ${downloadMbps} Mbps`);
+        this.mainWindow.webContents.executeJavaScript(`
             if (window.electronSpeedUpdater) {
         window.electronSpeedUpdater('📶 ${downloadMbps} Mbps');
     }
@@ -882,15 +912,41 @@ class AppManager {
 
 
 
-        } else {
-            console.log('❌ Could not measure network speed.');
-        }
+    } else {
+        console.log('❌ Could not measure network speed.');
     }
+}
 
-    run() {
 
-        app.whenReady().then(async () => {
 
+run() {
+
+    app.whenReady().then(async () => {
+
+
+            if (fs.existsSync(flagPath)) {
+                console.log("🟢 Detected just_updated.flag – will create shortcut...");
+
+
+                const createShortcutCommand = `powershell -Command "$desktopPath=[Environment]::GetFolderPath('Desktop');$s=(New-Object -COM WScript.Shell).CreateShortcut($desktopPath + '\\\\mobiCashier.lnk');$s.TargetPath='${process.execPath}';$s.WorkingDirectory='${path.dirname(process.execPath)}';$s.Save()"`;
+
+                exec(createShortcutCommand, { windowsHide: true }, (err) => {
+                    if (err) {
+                        console.error("❌ فشل في إنشاء الاختصار المخصص:", err);
+                    } else {
+                        console.log("✅ تم إنشاء الاختصار المخصص.");
+                    }
+                });
+
+                fs.unlinkSync(flagPath);
+            }
+
+
+
+
+
+
+            await clearElectronCache();
 
             this.splash = new BrowserWindow({
                 width: 400,
@@ -904,13 +960,18 @@ class AppManager {
 
             this.splash.loadFile(path.join(__dirname, 'public', 'splash.html'));
 
-
-
             setTimeout(async () => {
 
                 await this.createMainWindow();
+
+                console.log("before injectUpdateOverlay");
+
                 await this.injectUpdateOverlay();
-                // autoUpdater.checkForUpdatesAndNotify().catch(console.error);
+            // autoUpdater.checkForUpdatesAndNotify().catch(console.error);
+
+          
+                console.log("After injectUpdateOverlay");
+
 
                 this.mainWindow.webContents.once('did-finish-load', () => {
                     const startUpdatingSpeed = () => {
@@ -931,7 +992,6 @@ class AppManager {
                         }).catch(console.error);
                     }, 300);
                 });
-
 
 
                 // this.checkInternetAndTime();
@@ -968,6 +1028,21 @@ class AppManager {
                     const updateInfoPath = path.join(app.getPath('userData'), 'last_update.json');
                     const now = new Date().toISOString();
 
+
+                    try {
+                        const deleteShortcutCommand = `del "%USERPROFILE%\\Desktop\\mobiCashier.lnk"`;
+                        exec(deleteShortcutCommand, { shell: 'cmd.exe', windowsHide: true }, (err) => {
+                            if (err) {
+                                console.error("❌ Failed to delete desktop shortcut:", err);
+                            } else {
+                                console.log("🗑️ Deleted desktop shortcut via PowerShell.");
+                            }
+                        });
+                    } catch (err) {
+                        console.error("❌ Failed during update finalization:", err);
+                    }
+
+
                     try {
                         fs.writeFileSync(updateInfoPath, JSON.stringify({
                             version: info.version,
@@ -977,7 +1052,38 @@ class AppManager {
                     } catch (err) {
                         console.error("❌ Failed to save last update info:", err);
                     }
+
+                    try {
+                        const shortcutPath = path.join(app.getPath('desktop'), 'mobiCashier.lnk');
+                        console.log("🔍 Looking for flag at:", flagPath);
+                        console.log("🧾 File exists?", fs.existsSync(flagPath));
+
+                        if (fs.existsSync(shortcutPath)) {
+                            fs.unlinkSync(shortcutPath);
+                            console.log("🗑️ Deleted desktop shortcut before restart");
+                        }
+                    } catch (err) {
+                        console.error("❌ Failed to delete desktop shortcut:", err);
+                    }
+
+
+
+                    try {
+                        const flagDir = path.dirname(flagPath);
+                        if (!fs.existsSync(flagDir)) {
+                            fs.mkdirSync(flagDir, { recursive: true });
+                        }
+
+                        console.log("📌 Writing just_updated.flag to:", flagPath);
+                        fs.writeFileSync(flagPath, '1', 'utf8');
+                        console.log("📌 just_updated.flag created in leveldb folder.");
+                    } catch (err) {
+                        console.error("❌ Failed to create just_updated.flag in leveldb:", err);
+                    }
+
+                    autoUpdater.quitAndInstall(true, true);
                 });
+
 
                 autoUpdater.on('error', (error) => {
                     console.error('❌ AutoUpdater error:', error);
@@ -985,75 +1091,17 @@ class AppManager {
 
             }, 200);
 
+            async function clearElectronCache() {
+                try {
+                    await session.defaultSession.clearCache();
+                    await session.defaultSession.clearStorageData();
+                    console.log('✅ تم مسح الكاش وبيانات التخزين المؤقت.');
+                } catch (err) {
+                    console.error('❌ فشل في مسح الكاش:', err.message);
+                }
+            }
+
         });
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
         app.on('window-all-closed', () => {
             if (process.platform !== 'darwin') app.quit();
@@ -1075,6 +1123,50 @@ class AppManager {
             autoUpdater.quitAndInstall(true, true);
         });
     }
+
+}
+
+module.exports = AppManager;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    app.on('window-all-closed', () => {
+        if (process.platform !== 'darwin') app.quit();
+    });
+
+    app.on('activate', () => {
+        if (BrowserWindow.getAllWindows().length === 0) {
+            this.createMainWindow();
+        }
+    });
+
+    ipcMain.on('restart-app', () => {
+        console.log("🧪 Force quitting app...");
+        app.relaunch();
+        app.exit(0);
+    });
+
+    ipcMain.on('clsall-update', () => {
+        autoUpdater.quitAndInstall(true, true);
+    });
+}
 
 
 }
